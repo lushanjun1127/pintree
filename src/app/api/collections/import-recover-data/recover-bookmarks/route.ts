@@ -29,7 +29,7 @@ export async function POST(
       bookmarks.map((bookmark: ExportedBookmark) => 
         limit(async () => {
           const folderId = bookmark.folderTempId
-            ? folderMap.find((item: any) => item.tempId === bookmark.folderTempId)?.id
+            ? folderMap.find((item: { tempId: string; id: string }) => item.tempId === bookmark.folderTempId)?.id
             : undefined;
 
           return prisma.bookmark.create({

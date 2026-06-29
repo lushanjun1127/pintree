@@ -2,14 +2,14 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
 interface Setting {
-  value: any;
+  value: string | number | boolean;
   type: string;
   group: string;
   description?: string;
 }
 
 export function useSettings(group?: string) {
-  const [settings, setSettings] = useState<Record<string, any>>({});
+  const [settings, setSettings] = useState<Record<string, string | number | boolean>>({});
   const [loading, setLoading] = useState(true);
 
   // 加载设置
@@ -39,4 +39,4 @@ export function useSettings(group?: string) {
     loading,
     loadSettings
   };
-} 
+}
