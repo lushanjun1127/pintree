@@ -50,7 +50,7 @@ export function TopBanner() {
           {settings.topBannerDescription}
         </p>
         <a
-          href={settings.topBannerButtonLink}
+          href={String(settings.topBannerButtonLink || '')}
           target="_blank"
           rel="noopener noreferrer"
           className="flex-none rounded-full bg-gray-900 dark:bg-gray-100 dark:text-gray-900 px-3.5 py-1 text-sm font-semibold text-white shadow-sm hover:bg-gray-700 dark:hover:bg-gray-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900"
