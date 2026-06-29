@@ -59,7 +59,7 @@ export const generateMetadata = async (
     const siteUrl =
       settingsMap.siteUrl ||
       process.env.NEXT_PUBLIC_APP_URL ||
-      "http://localhost:3000";
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
 
     const imageBaseUrl = '/api/images/'
