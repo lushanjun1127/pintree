@@ -103,6 +103,12 @@ export function ImportCollectionDialog({
 
         for (const level of folderLevels) {
           const folderBatches = jsonData.folders[level];
+          
+          // 检查 folderBatches 是否存在且为数组
+          if (!folderBatches || !Array.isArray(folderBatches)) {
+            console.warn(`Folder batches for level ${level} is not an array or is undefined`);
+            continue;
+          }
 
           for (const folderBatch of folderBatches) {
             const folderRequestData = {
@@ -150,6 +156,17 @@ export function ImportCollectionDialog({
         }
 
         // Batch import bookmarks 
+        // 检查 bookmarks 是否存在且为数组
+        if (!jsonData.bookmarks || !Array.isArray(jsonData.bookmarks)) {
+          console.warn('Bookmarks data is not an array or is undefined');
+          toast({
+            variant: "destructive",
+            title: "Import Failed",
+            description: "Invalid bookmarks data in the imported file",
+          });
+          return;
+        }
+        
         const totalBookmarks = jsonData.bookmarks.length;
         for (let i = 0; i < totalBookmarks; i += batchSize) {
           const batchStartTime = Date.now();
@@ -194,6 +211,17 @@ export function ImportCollectionDialog({
 
         // Import completed
       } else {
+        // 检查 jsonData[0]?.children 是否存在且为数组
+        if (!jsonData[0] || !jsonData[0].children || !Array.isArray(jsonData[0].children)) {
+          console.warn('Invalid data structure in imported file');
+          toast({
+            variant: "destructive",
+            title: "Import Failed",
+            description: "Invalid data structure in the imported file",
+          });
+          return;
+        }
+        
         const flattenedBookmarks = createFlattenBookmarks(jsonData[0].children);
         const totalBookmarks = flattenedBookmarks.length;
         for (let i = 0; i < totalBookmarks; i += batchSize) {
