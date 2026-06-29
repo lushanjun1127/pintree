@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, Star, ExternalLink, Folder, ChevronLeft, ArrowUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -277,11 +277,16 @@ export function BookmarkDataTable({
   );
 }
 
-function TableActions({ item, onUpdate }: { item: TableItem; onUpdate: () => void }) {
+interface TableActionsProps {
+  item: TableItem;
+  onUpdate: () => void;
+}
+
+function TableActions({ item, onUpdate }: TableActionsProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     try {
       const endpoint = item.type === "folder" ? "folders" : "bookmarks";
       const response = await fetch(`/api/${endpoint}/${item.id}`, {
@@ -306,7 +311,15 @@ function TableActions({ item, onUpdate }: { item: TableItem; onUpdate: () => voi
       console.error("Delete failed:", error);
       alert(`Delete failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  };
+  }, [item, onUpdate]);
+
+  // 清理函数，确保组件卸载时关闭所有对话框
+  useEffect(() => {
+    return () => {
+      setIsEditDialogOpen(false);
+      setIsDeleteDialogOpen(false);
+    };
+  }, []);
 
   return (
     <>
@@ -328,7 +341,7 @@ function TableActions({ item, onUpdate }: { item: TableItem; onUpdate: () => voi
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-
+      
       {/* 编辑对话框 */}
       {item.type === "folder" ? (
         <EditFolderDialog
