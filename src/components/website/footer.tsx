@@ -49,7 +49,7 @@ export function Footer() {
               (key === 'contactEmail' ? settings[key] : settings[key]) && (
                 <Link
                   key={key}
-                  href={key === 'contactEmail' ? `mailto:${settings[key]}` : settings[key]}
+                  href={key === 'contactEmail' ? `mailto:${String(settings[key])}` : String(settings[key])}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-foreground transition-colors"
