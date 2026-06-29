@@ -17,7 +17,12 @@ export async function updateSettingsWithDefaults() {
     baseUrl = new URL(referer).origin;
   } else if (host) {
     // 如果没有 Referer，使用 host
-    baseUrl = `https://${host}`;
+    // 注意：在生产环境中，可能需要 HTTPS
+    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+    baseUrl = `${protocol}://${host}`;
+  } else {
+    // 如果以上都失败，尝试使用环境变量中的应用URL
+    baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   }
 
   console.log(`Current base URL: ${baseUrl}`);
@@ -68,9 +73,19 @@ export async function updateSettingsWithDefaults() {
               await Promise.all(
                 imagesToProcess.map(async (imagePath) => {
                   try {
-                    const buffer = await fetch(`${baseUrl}${imagePath}`).then(
-                      (res) => res.arrayBuffer()
-                    );
+                    // 构建完整的图片URL
+                    const imageUrl = imagePath.startsWith('http') ? imagePath : `${baseUrl}${imagePath}`;
+                    
+                    const response = await fetch(imageUrl);
+                    
+                    // 检查响应是否成功
+                    if (!response.ok) {
+                      console.warn(`Failed to fetch image ${imageUrl}: ${response.status} ${response.statusText}`);
+                      // 跳过此图片，继续处理其他图片
+                      return;
+                    }
+                    
+                    const buffer = await response.arrayBuffer();
 
                     const image = await prisma.image.create({
                       data: {
@@ -93,7 +108,7 @@ export async function updateSettingsWithDefaults() {
                     console.log(`Processed image ${imagePath} successfully`);
                   } catch (error) {
                     console.error(`Failed to process image ${imagePath}:`, error);
-                    throw error;
+                    // 记录错误但不抛出，让其他图片继续处理
                   }
                 })
               );
