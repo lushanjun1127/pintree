@@ -359,14 +359,16 @@ export function BookmarkGrid({
               <h2 className="text-xl font-semibold">Search results ({totalResults})</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6">
                 {searchResults.map((bookmark) => (
-                  <BookmarkCard
-                    key={bookmark.id}
-                    title={bookmark.title}
-                    url={bookmark.url}
-                    description={bookmark.description}
-                    icon={bookmark.icon}
-                    isFeatured={bookmark.isFeatured}
-                  />
+                  bookmark && bookmark.url ? (  // 添加检查确保bookmark和url存在
+                    <BookmarkCard
+                      key={bookmark.id}
+                      title={bookmark.title}
+                      url={bookmark.url}
+                      description={bookmark.description}
+                      icon={bookmark.icon}
+                      isFeatured={bookmark.isFeatured}
+                    />
+                  ) : null
                 ))}
               </div>
             </div>
@@ -388,14 +390,16 @@ export function BookmarkGrid({
                   )}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6">
                     {currentBookmarks.map((bookmark) => (
-                      <BookmarkCard
-                        key={bookmark.id}
-                        title={bookmark.title}
-                        url={bookmark.url}
-                        description={bookmark.description}
-                        icon={bookmark.icon}
-                        isFeatured={bookmark.isFeatured}
-                      />
+                      bookmark && bookmark.url ? (  // 添加检查确保bookmark和url存在
+                        <BookmarkCard
+                          key={bookmark.id}
+                          title={bookmark.title}
+                          url={bookmark.url}
+                          description={bookmark.description}
+                          icon={bookmark.icon}
+                          isFeatured={bookmark.isFeatured}
+                        />
+                      ) : null
                     ))}
                   </div>
                 </div>
@@ -423,14 +427,14 @@ export function BookmarkGrid({
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6">
                     {subfolder.items.slice(0, 50).map((item) => (
-                      item.type === 'folder' ? (
+                      item?.type === 'folder' ? (
                         <FolderCard
                           key={item.id}
                           name={item.name}
                           icon={item.icon}
                           onClick={() => handleFolderNavigation(item.id)}
                         />
-                      ) : (
+                      ) : item && item.url ? (  // 添加检查确保item和url存在
                         <BookmarkCard
                           key={item.id}
                           title={item.title}
@@ -439,7 +443,7 @@ export function BookmarkGrid({
                           icon={item.icon}
                           isFeatured={item.isFeatured}
                         />
-                      )
+                      ) : null
                     ))}
                   </div>
                 </div>
