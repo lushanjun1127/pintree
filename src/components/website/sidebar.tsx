@@ -109,7 +109,7 @@ export function WebsiteSidebar({
       };
       fetchFolders();
     }
-  }, [selectedCollectionId]);
+  }, [selectedCollectionId, onCollectionChange]);
 
   // 添加一个新的 useEffect 来处理文件夹展开
   useEffect(() => {

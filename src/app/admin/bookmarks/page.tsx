@@ -78,10 +78,6 @@ export default function BookmarksPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  useEffect(() => {
-    fetchCollections();
-  }, []);
-
   const fetchCollections = async () => {
     try {
       const response = await fetch("/api/collections");
@@ -114,6 +110,10 @@ export default function BookmarksPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchCollections();
+  }, [fetchCollections]);
 
   const fetchBookmarks = async (collectionId: string) => {
     try {
