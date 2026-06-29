@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { logError } from '@/lib/error-handler';
 
 interface Setting {
-  value: string | number | boolean | URL;
+  value: string | number | boolean;
   type: string;
   group: string;
   description?: string;
@@ -11,23 +12,24 @@ interface Setting {
 export function useSettings(group?: string) {
   const [settings, setSettings] = useState<Record<string, string | number | boolean>>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // 加载设置
   const loadSettings = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await fetch(`/api/settings${group ? `?group=${group}` : ''}`);
-      if (!response.ok) throw new Error('Load settings failed');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Load settings failed');
+      }
       const data = await response.json();
-      // 如果值的类型是URL，则将其转换为字符串
-      const processedData = Object.entries(data).reduce((acc, [key, value]) => {
-        acc[key] = value instanceof URL ? value.toString() : value;
-        return acc;
-      }, {} as Record<string, string | number | boolean>);
-      setSettings(processedData);
-    } catch (error) {
+      setSettings(data);
+    } catch (error: any) {
+      setError(error.message);
       toast.error('Load settings failed');
-      console.error(error);
+      logError(error, `useSettings hook - group: ${group || 'all'}`);
     } finally {
       setLoading(false);
     }
@@ -42,6 +44,7 @@ export function useSettings(group?: string) {
   return {
     settings,
     loading,
+    error,
     loadSettings
   };
 }

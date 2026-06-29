@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
-
+import { settingsCache } from '@/lib/cache';
 
 export const runtime = 'nodejs';
 // 增加超时时间到最大值
@@ -13,6 +13,14 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const group = searchParams.get('group');
+    
+    // 使用缓存键
+    const cacheKey = group ? `settings_${group}` : 'settings_all';
+    const cachedSettings = settingsCache.get(cacheKey);
+    
+    if (cachedSettings) {
+      return NextResponse.json(cachedSettings);
+    }
     
     // 获取所有设置
     const settings = group 
@@ -33,6 +41,8 @@ export async function GET(request: Request) {
       enableSearch: true
     };
 
+    // 设置缓存
+    settingsCache.set(cacheKey, result, 10 * 60 * 1000); // 缓存10分钟
 
     return NextResponse.json(result);
   } catch (error) {
@@ -52,6 +62,12 @@ export async function POST(request: Request) {
     }
 
     const data = await request.json();
+    // 清除相关缓存
+    settingsCache.delete('settings_all');
+    if (data.group) {
+      settingsCache.delete(`settings_${data.group}`);
+    }
+    
     // console.log('接收到的数据:', data);
 
     try {
@@ -73,7 +89,8 @@ export async function POST(request: Request) {
         }
       }
 
-
+      // 清除所有设置缓存，因为可能影响多个分组
+      settingsCache.clear();
 
       return NextResponse.json({ 
         message: 'Settings saved',

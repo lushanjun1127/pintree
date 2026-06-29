@@ -8,6 +8,7 @@ import { defaultSettings } from "@/lib/defaultSettings";
 import { cache } from 'react'
 import type { Metadata, ResolvingMetadata } from 'next'
 import { GoogleAnalytics } from '@next/third-parties/google'
+import ErrorBoundary from "@/components/common/ErrorBoundary";
 
 async function checkSiteSettingTableExists() {
   const result: any = await prisma.$queryRaw`
@@ -170,7 +171,9 @@ export default async function RootLayout({
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <body suppressHydrationWarning>
-        <SessionProvider>{children}</SessionProvider>
+        <ErrorBoundary>
+          <SessionProvider>{children}</SessionProvider>
+        </ErrorBoundary>
         <Toaster />
         <SonnerToaster />
       </body>
