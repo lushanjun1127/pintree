@@ -54,23 +54,32 @@ export default function LoginPage() {
             });
             const result = await initResponse.json();
             
+            if (!initResponse.ok) {
+              // 处理HTTP错误状态
+              setError(`Database initialization failed: ${result.error || 'Unknown error'}`);
+              return;
+            }
+            
             if (result.status !== 'success') {
               // 处理初始化失败的情况
+              console.error("Database initialization error:", result);
               setError(result.message || "Database initialization failed");
               return;
             }
             revalidateData();
-          } catch (error) {
+          } catch (error: any) {
             // 处理网络错误或解析错误
-            setError("Database initialization failed");
+            console.error("Database initialization error:", error);
+            setError(`Database initialization failed: ${error.message || 'Network error'}`);
             return;
           }
         }
         router.push("/admin/collections");
         router.refresh();
       }
-    } catch (error) {
+    } catch (error: any) {
       setError("Login failed, please try again");
+      console.error("Login error:", error);
     } finally {
       setLoading(false);
     }
