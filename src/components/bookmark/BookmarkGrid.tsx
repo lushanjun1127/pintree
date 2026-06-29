@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { BookmarkCard } from "./BookmarkCard";
 import { FolderCard } from "./FolderCard";
 import { Skeleton } from "@/components/ui/skeleton";
