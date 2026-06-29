@@ -11,14 +11,20 @@ import { GoogleAnalytics } from '@next/third-parties/google'
 import ErrorBoundary from "@/components/common/ErrorBoundary";
 
 async function checkSiteSettingTableExists() {
-  const result: any = await prisma.$queryRaw`
-    SELECT EXISTS (
-      SELECT FROM information_schema.tables 
-      WHERE  table_schema = 'public'
-      AND    table_name   = 'SiteSetting'
-    );
-  `;
-  return result[0].exists;
+  try {
+    // 更安全的表存在性检查
+    const result: any = await prisma.$queryRaw`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE  table_schema = 'public'
+        AND    table_name   = 'SiteSetting'
+      ) as "exists";
+    `;
+    return result?.[0]?.exists === true;
+  } catch (error) {
+    console.error("Database error in checkSiteSettingTableExists:", error);
+    return false;
+  }
 }
 
 type Props = {
