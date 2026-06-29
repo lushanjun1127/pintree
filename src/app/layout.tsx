@@ -1,4 +1,3 @@
-
 import { prisma } from "@/lib/prisma";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { Toaster } from "@/components/ui/toaster";
@@ -33,7 +32,7 @@ export const generateMetadata = async (
   try {
     const tableExists = await checkSiteSettingTableExists();
     const keys = ["websiteName", "description", "keywords", "siteUrl", "faviconUrl", "ogImage"];
-    let settings: any;
+    let settings: any = []; // 初始化为空数组
     if (tableExists) {
       settings = await prisma.siteSetting.findMany({
         where: {
@@ -46,7 +45,7 @@ export const generateMetadata = async (
 
     // console.log(settings)
 
-    settings = settings.length > 0 ? settings : defaultSettings.filter((setting) =>
+    settings = Array.isArray(settings) && settings.length > 0 ? settings : defaultSettings.filter((setting) =>
       keys.includes(setting.key)
     );
 
