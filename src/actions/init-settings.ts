@@ -23,8 +23,8 @@ export async function updateSettingsWithDefaults() {
   } else {
     // 如果以上都失败，尝试使用环境变量中的应用URL
     baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-              process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
-              'http://localhost:3000';
+              (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
+              'http://localhost:3000');
   }
 
   console.log(`Current base URL: ${baseUrl}`);
