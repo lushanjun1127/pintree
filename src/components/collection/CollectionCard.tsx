@@ -172,7 +172,7 @@ export function CollectionCard({ collection, onUpdate }: CollectionCardProps) {
           <DialogHeader>
             <DialogTitle>Delete Bookmark Collection</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete the "{collection.name}" bookmark collection? This action cannot be undone.
+              Are you sure you want to delete the {collection.name} bookmark collection? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

@@ -366,7 +366,7 @@ function TableActions({ item, onUpdate }: TableActionsProps) {
           <DialogHeader>
             <DialogTitle>Delete {item.type === "folder" ? "folder" : "bookmark"}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{item.title}" this {item.type === "folder" ? "folder" : "bookmark"}? This action cannot be undone.
+              Are you sure you want to delete {item.title} this {item.type === "folder" ? "folder" : "bookmark"}? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

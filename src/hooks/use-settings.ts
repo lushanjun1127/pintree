@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { logError } from '@/lib/error-handler';
 
@@ -15,7 +15,7 @@ export function useSettings(group?: string) {
   const [error, setError] = useState<string | null>(null);
 
   // 加载设置
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -33,13 +33,13 @@ export function useSettings(group?: string) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [group]);
 
 
 
   useEffect(() => {
     loadSettings();
-  }, [group]);
+  }, [loadSettings]);
 
   return {
     settings,

@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
+import { getServerSession } from "next-auth";
+import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   try {
@@ -12,7 +12,6 @@ export async function POST(request: Request) {
 
     const { name, icon, isPublic, password, collectionId, parentId } = await request.json();
 
-    // 验证必填字段
     if (!name || !collectionId) {
       return NextResponse.json(
         { error: "Name and collection are required" },
@@ -20,13 +19,22 @@ export async function POST(request: Request) {
       );
     }
 
-    // 如果指定了parentId,验证父文件夹是否存在且属于同一个集合
+    const collection = await prisma.collection.findUnique({
+      where: { id: collectionId },
+      select: { id: true },
+    });
+
+    if (!collection) {
+      return NextResponse.json({ error: "Collection not found" }, { status: 400 });
+    }
+
     if (parentId) {
-      const parentFolder = await prisma.folder.findUnique({
-        where: { 
+      const parentFolder = await prisma.folder.findFirst({
+        where: {
           id: parentId,
-          collectionId: collectionId
-        }
+          collectionId,
+        },
+        select: { id: true },
       });
 
       if (!parentFolder) {
@@ -41,17 +49,16 @@ export async function POST(request: Request) {
       data: {
         name,
         icon,
-        isPublic,
-        password,
+        isPublic: isPublic ?? true,
+        password: isPublic ? null : password || null,
         collectionId,
-        parentId: parentId || null
+        parentId: parentId || null,
       },
     });
 
     return NextResponse.json(folder);
   } catch (error) {
-    console.error(error);
+    console.error("Failed to create folder:", error);
     return NextResponse.json({ error: "Failed to create folder" }, { status: 500 });
   }
 }
-

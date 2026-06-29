@@ -1,196 +1,203 @@
-import { NextResponse } from "next/server";
+import { assertPublicHttpUrl } from "@/lib/api/url";
+import { requireApiSession } from "@/lib/api/auth";
 import * as cheerio from "cheerio";
 import type { CheerioAPI } from "cheerio";
+import { NextResponse } from "next/server";
+
+export const runtime = "nodejs";
+
+const REQUEST_TIMEOUT_MS = 8_000;
+const MAX_REDIRECTS = 3;
+const MAX_HTML_BYTES = 1024 * 1024;
+
+async function fetchPublicUrl(url: string, init?: RequestInit, redirects = 0): Promise<Response> {
+  const parsedUrl = await assertPublicHttpUrl(url);
+  const response = await fetch(parsedUrl.href, {
+    ...init,
+    redirect: "manual",
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+      ...init?.headers,
+    },
+  });
+
+  if (response.status >= 300 && response.status < 400) {
+    if (redirects >= MAX_REDIRECTS) {
+      throw new Error("Too many redirects");
+    }
+
+    const location = response.headers.get("location");
+    if (!location) {
+      return response;
+    }
+
+    const nextUrl = new URL(location, parsedUrl).href;
+    return fetchPublicUrl(nextUrl, init, redirects + 1);
+  }
+
+  return response;
+}
 
 async function checkUrl(url: string) {
   try {
-    const response = await fetch(url, {
-      method: 'HEAD',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      }
-    });
+    const response = await fetchPublicUrl(url, { method: "HEAD" });
     return response.ok;
-  } catch (error) {
+  } catch {
     return false;
   }
 }
 
-async function getIconUrl(domain: string, $?: CheerioAPI): Promise<string> {
-  // 1. 如果提供了 CheerioAPI，先尝试从 HTML 中获取图标
-  if ($) {
-    // 查找网页中的图标链接
-    const iconSelectors = [
-      'link[rel="icon"]',
-      'link[rel="shortcut icon"]',
-      'link[rel="apple-touch-icon"]',
-      'link[rel="apple-touch-icon-precomposed"]',
-      'meta[property="og:image"]'
-    ];
-
-    for (const selector of iconSelectors) {
-      const iconElement = $(selector);
-      const iconUrl = iconElement.attr('href') || iconElement.attr('content');
-      if (iconUrl) {
-        // 处理相对路径
-        try {
-          const absoluteUrl = new URL(iconUrl, `https://${domain}`).href;
-          if (await checkUrl(absoluteUrl)) {
-            return absoluteUrl;
-          }
-        } catch (error) {
-          console.error('Error processing icon URL:', error);
-        }
-      }
-    }
-  }
-
-  // 2. 尝试网站根目录的 favicon.ico
-  const rootFaviconUrl = `https://${domain}/favicon.ico`;
-  if (await checkUrl(rootFaviconUrl)) {
-    return rootFaviconUrl;
-  }
-
-  // 3. 尝试 Google Favicon 服务
-  const googleFaviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
-  if (await checkUrl(googleFaviconUrl)) {
-    return googleFaviconUrl;
-  }
-
-  // 4. 尝试 Clearbit
-  const clearbitUrl = `https://logo.clearbit.com/${domain}`;
-  if (await checkUrl(clearbitUrl)) {
-    return clearbitUrl;
-  }
-
-  // 5. 如果都失败了，返回 Google 的默认图标（这样至少能显示一个图标）
-  return googleFaviconUrl;
+function getFallbackIcons(domain: string) {
+  const encodedDomain = encodeURIComponent(domain);
+  return [
+    `https://${domain}/favicon.ico`,
+    `https://www.google.com/s2/favicons?domain=${encodedDomain}&sz=128`,
+    `https://logo.clearbit.com/${encodedDomain}`,
+  ];
 }
 
-async function getAllIcons(domain: string, $?: CheerioAPI): Promise<string[]> {
+async function getIconUrl(domain: string, pageUrl: string, $?: CheerioAPI): Promise<string> {
+  const icons = await getAllIcons(domain, pageUrl, $);
+  return icons[0] || `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`;
+}
+
+async function getAllIcons(domain: string, pageUrl?: string, $?: CheerioAPI): Promise<string[]> {
   const icons: string[] = [];
 
-  // 1. 从 HTML 获取图标
-  if ($) {
+  if ($ && pageUrl) {
     const iconSelectors = [
       'link[rel="icon"]',
       'link[rel="shortcut icon"]',
       'link[rel="apple-touch-icon"]',
       'link[rel="apple-touch-icon-precomposed"]',
-      'meta[property="og:image"]'
+      'meta[property="og:image"]',
     ];
 
     for (const selector of iconSelectors) {
       const iconElement = $(selector);
-      const iconUrl = iconElement.attr('href') || iconElement.attr('content');
-      if (iconUrl) {
-        try {
-          const absoluteUrl = new URL(iconUrl, `https://${domain}`).href;
-          if (await checkUrl(absoluteUrl)) {
-            icons.push(absoluteUrl);
-          }
-        } catch (error) {
-          console.error('Error processing icon URL:', error);
+      const iconUrl = iconElement.attr("href") || iconElement.attr("content");
+      if (!iconUrl) {
+        continue;
+      }
+
+      try {
+        const absoluteUrl = new URL(iconUrl, pageUrl).href;
+        if (await checkUrl(absoluteUrl)) {
+          icons.push(absoluteUrl);
         }
+      } catch {
+        // Ignore malformed icon URLs from remote pages.
       }
     }
   }
 
-  // 2. 添加其他来源的图标
-  const alternativeIcons = [
-    `https://${domain}/favicon.ico`,
-    `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
-    `https://logo.clearbit.com/${domain}`
-  ];
-
-  for (const iconUrl of alternativeIcons) {
+  for (const iconUrl of getFallbackIcons(domain)) {
     if (await checkUrl(iconUrl)) {
       icons.push(iconUrl);
     }
   }
 
-  return [...new Set(icons)]; // 去重
+  return [...new Set(icons)];
+}
+
+async function readLimitedText(response: Response) {
+  const contentLength = Number.parseInt(response.headers.get("content-length") || "0", 10);
+  if (contentLength > MAX_HTML_BYTES) {
+    throw new Error("Remote document is too large");
+  }
+
+  if (!response.body) {
+    return "";
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let received = 0;
+  let result = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+
+    received += value.byteLength;
+    if (received > MAX_HTML_BYTES) {
+      await reader.cancel();
+      throw new Error("Remote document is too large");
+    }
+
+    result += decoder.decode(value, { stream: true });
+  }
+
+  result += decoder.decode();
+  return result;
 }
 
 export async function POST(request: Request) {
   try {
+    const auth = await requireApiSession();
+    if (auth.response) {
+      return auth.response;
+    }
+
     const { url } = await request.json();
 
-    if (!url) {
+    if (typeof url !== "string" || !url.trim()) {
       return NextResponse.json({ error: "Please enter a URL" }, { status: 400 });
     }
 
-    try {
-      new URL(url);
-    } catch {
-      return NextResponse.json({ error: "Invalid URL format" }, { status: 400 });
+    const parsedUrl = await assertPublicHttpUrl(url.trim());
+    const domain = parsedUrl.hostname;
+    const response = await fetchPublicUrl(parsedUrl.href, {
+      headers: {
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error: ${response.status}`);
     }
 
-    const domain = new URL(url).hostname;
-
-    try {
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.5',
-        },
-        redirect: 'follow',
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('text/html')) {
-        return NextResponse.json({
-          title: url,
-          description: "",
-          icons: await getAllIcons(domain),
-          icon: await getIconUrl(domain)
-        });
-      }
-
-      const html = await response.text();
-      const $ = cheerio.load(html);
-
-      // 获取标题
-      let title = $("title").text() || 
-                 $('meta[property="og:title"]').attr("content") || 
-                 $('meta[name="twitter:title"]').attr("content") || 
-                 domain;
-
-      // 获取描述
-      let description = $('meta[name="description"]').attr("content") || 
-                       $('meta[property="og:description"]').attr("content") || 
-                       $('meta[name="twitter:description"]').attr("content") || 
-                       "";
-
-      // 修改返回数据，包含所有图标
+    const contentType = response.headers.get("content-type");
+    if (!contentType || !contentType.includes("text/html")) {
       return NextResponse.json({
-        title: title.trim(),
-        description: description.trim(),
-        icons: await getAllIcons(domain, $),
-        icon: await getIconUrl(domain, $) // 保持默认图标向后兼容
-      });
-
-    } catch (error) {
-      console.error("Fetch error:", error);
-      // 如果获取失败，至少返回域名作为标题
-      return NextResponse.json({
-        title: domain,
+        title: parsedUrl.href,
         description: "",
         icons: await getAllIcons(domain),
-        icon: await getIconUrl(domain)
+        icon: await getIconUrl(domain, parsedUrl.href),
       });
     }
 
+    const html = await readLimitedText(response);
+    const $ = cheerio.load(html);
+
+    const title =
+      $("title").text() ||
+      $('meta[property="og:title"]').attr("content") ||
+      $('meta[name="twitter:title"]').attr("content") ||
+      domain;
+
+    const description =
+      $('meta[name="description"]').attr("content") ||
+      $('meta[property="og:description"]').attr("content") ||
+      $('meta[name="twitter:description"]').attr("content") ||
+      "";
+
+    return NextResponse.json({
+      title: title.trim(),
+      description: description.trim(),
+      icons: await getAllIcons(domain, parsedUrl.href, $),
+      icon: await getIconUrl(domain, parsedUrl.href, $),
+    });
   } catch (error) {
     console.error("Error in URL info API:", error);
     return NextResponse.json(
       { error: "Failed to get URL information, please check if the URL is correct" },
-      { status: 500 }
+      { status: 400 }
     );
   }
-} 
+}

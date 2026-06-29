@@ -50,6 +50,7 @@ export default function LoginPage() {
         if (initializeDatabase) {
           try {
             const initResponse = await fetch("/api/settings/initSettings",{
+              method: "POST",
               cache: "no-store",
             });
             const result = await initResponse.json();

@@ -1,7 +1,8 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { prisma } from "@/lib/prisma";
 import { DefaultSession } from "next-auth";
+import bcrypt from "bcryptjs";
+import { timingSafeEqual } from "crypto";
 
 // 扩展 Session 类型
 declare module "next-auth" {
@@ -13,7 +14,7 @@ declare module "next-auth" {
 }
 
 export const authOptions: NextAuthOptions = {
-  secret: process.env.NEXTAUTH_SECRET || "QmJBzzN86SFfUw4MNRg6e3AngucQZhjMP/sOfvqeP6M=",
+  secret: process.env.NEXTAUTH_SECRET,
   providers: [
     CredentialsProvider({
       name: "Email Password",
@@ -28,8 +29,18 @@ export const authOptions: NextAuthOptions = {
 
         const adminEmail = process.env.ADMIN_EMAIL;
         const adminPassword = process.env.ADMIN_PASSWORD;
+        const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
 
-        if (credentials.email !== adminEmail || credentials.password !== adminPassword) {
+        if (!adminEmail || (!adminPassword && !adminPasswordHash)) {
+          throw new Error("Admin credentials are not configured");
+        }
+
+        const emailMatches = credentials.email === adminEmail;
+        const passwordMatches = adminPasswordHash
+          ? await bcrypt.compare(credentials.password, adminPasswordHash)
+          : safeCompare(credentials.password, adminPassword || "");
+
+        if (!emailMatches || !passwordMatches) {
           throw new Error("Email or password is incorrect");
         }
 
@@ -43,12 +54,27 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async session({ session, token }) {
-      console.log('Session callback:', { session, token }); // 调试日志
+      if (session.user && token.sub) {
+        session.user.id = token.sub;
+      }
       return session;
     },
     async jwt({ token, user }) {
-      console.log('JWT callback:', { token, user }); // 调试日志
+      if (user) {
+        token.sub = user.id;
+      }
       return token;
     },
   }
 };
+
+function safeCompare(value: string, expected: string) {
+  const valueBuffer = Buffer.from(value);
+  const expectedBuffer = Buffer.from(expected);
+
+  if (valueBuffer.length !== expectedBuffer.length) {
+    return false;
+  }
+
+  return timingSafeEqual(valueBuffer, expectedBuffer);
+}

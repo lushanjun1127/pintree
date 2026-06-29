@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import pLimit from "p-limit";
 import { prisma } from "@/lib/prisma";
+import { requireApiSession } from "@/lib/api/auth";
+import { normalizeHttpUrl } from "@/lib/api/url";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -14,12 +16,31 @@ interface FlattenedBookmarkItem {
   addDate?: number;
   url?: string;
   icon?: string;
+  depth?: number;
 }
+
+type FolderMapItem = {
+  dataBaseId: string;
+  processId: string;
+};
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireApiSession();
+    if (auth.response) {
+      return auth.response;
+    }
+
     const { name, description, bookmarks, collectionId, folderMap } =
       await request.json();
+
+    if (!Array.isArray(bookmarks)) {
+      return NextResponse.json({ error: "Invalid bookmarks payload" }, { status: 400 });
+    }
+
+    if (!collectionId && (typeof name !== "string" || !name.trim())) {
+      return NextResponse.json({ error: "Collection name is required" }, { status: 400 });
+    }
 
     // Prevent import if any other collection already exists
     const existingCollectionsCount = await prisma.collection.count();
@@ -29,7 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     let targetCollection;
-    let insideFolderMap: { [key: string]: string }[] = folderMap || [];
+    let insideFolderMap: FolderMapItem[] = Array.isArray(folderMap) ? folderMap : [];
 
     // Handle collection (create new or use existing)
     if (collectionId) {
@@ -44,8 +65,8 @@ export async function POST(request: NextRequest) {
       // Create new collection
       targetCollection = await prisma.collection.create({
         data: {
-          name: name,
-          description: description,
+          name: name.trim(),
+          description: typeof description === "string" ? description : "",
         },
       });
 
@@ -67,9 +88,9 @@ export async function POST(request: NextRequest) {
     const foldersByDepth = folderItems.reduce(
       (
         acc: Record<number, FlattenedBookmarkItem[]>,
-        folder: FlattenedBookmarkItem & { depth: number }
+        folder: FlattenedBookmarkItem
       ) => {
-        const depth = folder.depth;
+        const depth = folder.depth ?? 0;
         if (!acc[depth]) {
           acc[depth] = [];
         }
@@ -102,7 +123,7 @@ export async function POST(request: NextRequest) {
                 name: folder.title,
                 collectionId: targetCollection.id,
                 parentId: parentId,
-                sortOrder: folder.sortOrder,
+                sortOrder: Number.isFinite(folder.sortOrder) ? folder.sortOrder : 0,
               },
             });
 
@@ -124,6 +145,11 @@ export async function POST(request: NextRequest) {
     const bookmarkPromises = bookmarkItems.map(
       (bookmark: FlattenedBookmarkItem) =>
         limit(async () => {
+          const normalizedUrl = normalizeHttpUrl(bookmark.url);
+          if (!normalizedUrl) {
+            return;
+          }
+
           const folderId = bookmark.parentId
             ? insideFolderMap.find(
                 (item) => item.processId === bookmark.parentId
@@ -132,12 +158,12 @@ export async function POST(request: NextRequest) {
 
           await prisma.bookmark.create({
             data: {
-              title: bookmark.title,
-              url: bookmark.url || "",
+              title: bookmark.title || normalizedUrl,
+              url: normalizedUrl,
               icon: bookmark.icon,
               collectionId: targetCollection.id,
               folderId: folderId,
-              sortOrder: bookmark.sortOrder,
+              sortOrder: Number.isFinite(bookmark.sortOrder) ? bookmark.sortOrder : 0,
             },
           });
         })
@@ -160,7 +186,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         message: "Import failed",
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: "Unable to import bookmarks",
       },
       { status: 500 }
     );

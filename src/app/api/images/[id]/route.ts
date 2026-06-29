@@ -5,11 +5,12 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const image = await prisma.image.findUnique({
-      where: { id: params.id }
+    const { id } = await params;
+    const image = await prisma.image.findFirst({
+      where: { id, isPublic: true }
     })
 
     if (!image) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -59,11 +59,22 @@ export function EditFolderDialog({
 
   const [formData, setFormData] = useState(initialFormData);
 
+  const fetchFolders = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/collections/${collectionId}/folders`);
+      const data = await response.json();
+      const folderList = Array.isArray(data) ? data : [];
+      setFolders(folderList.filter((f: Folder) => f.id !== folder.id));
+    } catch (error) {
+      console.error("Failed to get folders:", error);
+    }
+  }, [collectionId, folder.id]);
+
   useEffect(() => {
     if (collectionId) {
       fetchFolders();
     }
-  }, [collectionId]);
+  }, [collectionId, fetchFolders]);
 
   useEffect(() => {
     if (folder && open) {
@@ -77,16 +88,6 @@ export function EditFolderDialog({
       });
     }
   }, [folder, open]);
-
-  const fetchFolders = async () => {
-    try {
-      const response = await fetch(`/api/collections/${collectionId}/folders`);
-      const data = await response.json();
-      setFolders(data.filter((f: Folder) => f.id !== folder.id));
-    } catch (error) {
-      console.error("Failed to get folders:", error);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CollectionCard } from "./CollectionCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Upload } from "lucide-react";
@@ -29,11 +29,7 @@ export function CollectionList({ onCollectionsChange }: { onCollectionsChange: (
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
 
-  useEffect(() => {
-    fetchCollections();
-  }, []);
-
-  const fetchCollections = async () => {
+  const fetchCollections = useCallback(async () => {
     try {
       const response = await fetch("/api/collections");
       if (!response.ok) {
@@ -56,7 +52,11 @@ export function CollectionList({ onCollectionsChange }: { onCollectionsChange: (
     } finally {
       setLoading(false);
     }
-  };
+  }, [onCollectionsChange]);
+
+  useEffect(() => {
+    fetchCollections();
+  }, [fetchCollections]);
 
   if (loading) {
     return (
@@ -102,7 +102,7 @@ export function CollectionList({ onCollectionsChange }: { onCollectionsChange: (
           </svg>
           <h3 className="mt-4 text-lg font-semibold">No bookmark collections</h3>
           <p className="mb-4 mt-2 text-sm text-muted-foreground">
-            You haven't created any bookmark collections yet. Start creating your first bookmark collection now.
+            You have not created any bookmark collections yet. Start creating your first bookmark collection now.
           </p>
           <div className="flex gap-2">
             <Button

@@ -1,7 +1,9 @@
+import { parsePositiveInt } from "@/lib/api/params";
+import { normalizeHttpUrl } from "@/lib/api/url";
 import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
+import { getServerSession } from "next-auth";
+import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
   try {
@@ -11,15 +13,12 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get("page") || "1");
-    const pageSize = parseInt(searchParams.get("pageSize") || "100");
+    const page = parsePositiveInt(searchParams.get("page"), 1, 10_000);
+    const pageSize = parsePositiveInt(searchParams.get("pageSize"), 100, 100);
     const skip = (page - 1) * pageSize;
 
-    // 使用 Promise.all 并行执行查询
     const [total, bookmarks] = await Promise.all([
-      // 获取总数
       prisma.bookmark.count(),
-      // 获取分页数据
       prisma.bookmark.findMany({
         select: {
           id: true,
@@ -45,18 +44,17 @@ export async function GET(request: Request) {
         orderBy: {
           updatedAt: "desc",
         },
-      })
+      }),
     ]);
 
     return NextResponse.json({
       bookmarks,
       total,
       currentPage: page,
-      totalPages: Math.ceil(total / pageSize)
+      totalPages: Math.ceil(total / pageSize),
     });
-
   } catch (error) {
-    console.error(error);
+    console.error("Failed to get bookmarks:", error);
     return NextResponse.json({ error: "Failed to get bookmarks" }, { status: 500 });
   }
 }
@@ -68,35 +66,52 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { title, url, description, icon, collectionId, folderId, tags, isFeatured, sortOrder } = await request.json();
+    const { title, url, description, icon, collectionId, folderId, isFeatured, sortOrder } =
+      await request.json();
+    const normalizedUrl = normalizeHttpUrl(url);
 
-    // 验证必填字段
-    if (!title || !url || !collectionId) {
+    if (!title || !normalizedUrl || !collectionId) {
       return NextResponse.json(
-        { error: "Title, URL and collection are required" },
+        { error: "A title, valid HTTP(S) URL and collection are required" },
         { status: 400 }
       );
     }
 
-    // 创建书签的基础数据
-    const bookmarkData = {
+    const collection = await prisma.collection.findUnique({
+      where: { id: collectionId },
+      select: { id: true },
+    });
+
+    if (!collection) {
+      return NextResponse.json({ error: "Selected collection does not exist" }, { status: 400 });
+    }
+
+    const bookmarkData: {
+      title: string;
+      url: string;
+      description?: string;
+      icon?: string;
+      collectionId: string;
+      folderId?: string;
+      isFeatured: boolean;
+      sortOrder: number;
+    } = {
       title,
-      url,
+      url: normalizedUrl,
       description,
       icon,
       collectionId,
       isFeatured: isFeatured ?? false,
-      sortOrder: sortOrder ?? 0,
+      sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
     };
 
-    // 如果提供了有效的 folderId，则添加到数据中
     if (folderId && folderId !== "none") {
-      // 验证文件夹是否存在且属于正确的集合
-      const folder = await prisma.folder.findUnique({
+      const folder = await prisma.folder.findFirst({
         where: {
           id: folderId,
-          collectionId: collectionId
-        }
+          collectionId,
+        },
+        select: { id: true },
       });
 
       if (!folder) {
@@ -106,7 +121,7 @@ export async function POST(request: Request) {
         );
       }
 
-      Object.assign(bookmarkData, { folderId });
+      bookmarkData.folderId = folderId;
     }
 
     const bookmark = await prisma.bookmark.create({

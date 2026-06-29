@@ -3,10 +3,10 @@ import { NextResponse } from "next/server";
 
 export async function GET(
   request: Request,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const { slug } = await Promise.resolve(params);
+    const { slug } = await params;
     
     const collection = await prisma.collection.findFirst({
       where: {

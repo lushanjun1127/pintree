@@ -107,18 +107,18 @@ function buildFolderHierarchy(folders: Folder[]): {
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
-    console.log('session', session);
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const collection = await prisma.collection.findFirst({
       where: {
-        id: params.id,
+        id,
       },
       include: {
         folders: {

@@ -1,30 +1,29 @@
 import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
+import { getServerSession } from "next-auth";
+import { NextResponse } from "next/server";
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 检查文件夹是否存在
     const folder = await prisma.folder.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!folder) {
       return NextResponse.json({ error: "Folder not found" }, { status: 404 });
     }
 
-    // 删除文件夹
     await prisma.folder.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ message: "Delete success" });
@@ -36,35 +35,65 @@ export async function DELETE(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const data = await request.json();
-
-    // 检查文件夹是否存在
     const folder = await prisma.folder.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!folder) {
       return NextResponse.json({ error: "Folder not found" }, { status: 404 });
     }
 
-    // 更新文件夹
+    const parentId = Object.prototype.hasOwnProperty.call(data, "parentId")
+      ? data.parentId || null
+      : folder.parentId;
+    if (parentId) {
+      if (parentId === id) {
+        return NextResponse.json({ error: "A folder cannot be its own parent" }, { status: 400 });
+      }
+
+      const parentFolder = await prisma.folder.findFirst({
+        where: {
+          id: parentId,
+          collectionId: folder.collectionId,
+        },
+        select: { id: true },
+      });
+
+      if (!parentFolder) {
+        return NextResponse.json(
+          { error: "Parent folder does not exist or does not belong to this collection" },
+          { status: 400 }
+        );
+      }
+
+      if (await isDescendantFolder(parentId, id)) {
+        return NextResponse.json(
+          { error: "A folder cannot be moved under one of its descendants" },
+          { status: 400 }
+        );
+      }
+    }
+
+    const isPublic = data.isPublic ?? folder.isPublic;
     const updatedFolder = await prisma.folder.update({
-      where: { id: params.id },
+      where: { id },
       data: {
-        name: data.name,
+        name: data.name ?? folder.name,
         icon: data.icon,
-        isPublic: data.isPublic,
-        password: data.password,
-        sortOrder: data.sortOrder,
-        parentId: data.parentId,
+        isPublic,
+        password: isPublic ? null : data.password || null,
+        sortOrder: Number.isFinite(data.sortOrder) ? data.sortOrder : folder.sortOrder,
+        parentId,
       },
     });
 
@@ -75,3 +104,22 @@ export async function PATCH(
   }
 }
 
+async function isDescendantFolder(candidateParentId: string, folderId: string) {
+  let current = await prisma.folder.findUnique({
+    where: { id: candidateParentId },
+    select: { parentId: true },
+  });
+
+  while (current?.parentId) {
+    if (current.parentId === folderId) {
+      return true;
+    }
+
+    current = await prisma.folder.findUnique({
+      where: { id: current.parentId },
+      select: { parentId: true },
+    });
+  }
+
+  return false;
+}

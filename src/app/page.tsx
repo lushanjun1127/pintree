@@ -68,7 +68,7 @@ function SearchParamsComponent() {
     };
 
     fetchCollectionsAndSetDefault();
-  }, [searchParams]);
+  }, [collectionSlug, searchParams]);
 
 
 
@@ -99,7 +99,7 @@ function SearchParamsComponent() {
         console.error("刷新数据失败:", error);
       }
     }
-  }, [selectedCollectionId, currentFolderId]);
+  }, [selectedCollectionId]);
 
   return (
     <div className="flex min-h-screen flex-col bg-background">

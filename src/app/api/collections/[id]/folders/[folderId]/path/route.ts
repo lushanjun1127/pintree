@@ -1,15 +1,14 @@
+import { getCollectionAccess } from "@/lib/api/collections";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string; folderId: string } }
+  { params }: { params: Promise<{ id: string; folderId: string }> }
 ) {
   try {
-    // 等待参数解析
-    const { id, folderId } = await Promise.resolve(params);
-    
-    // 验证参数
+    const { id, folderId } = await params;
+
     if (!id || !folderId) {
       return NextResponse.json(
         { error: "Missing required parameters" },
@@ -17,28 +16,47 @@ export async function GET(
       );
     }
 
+    const access = await getCollectionAccess(id);
+    if (access.response) {
+      return access.response;
+    }
+
+    const canViewPrivate = !!access.session;
     const path = [];
-    let currentFolder = await prisma.folder.findUnique({
-      where: { 
+    let currentFolder = await prisma.folder.findFirst({
+      where: {
         id: folderId,
-        collectionId: id // 确保文件夹属于正确的集合
-      }
+        collectionId: id,
+        ...(canViewPrivate ? {} : { isPublic: true }),
+      },
     });
+
+    if (!currentFolder) {
+      return NextResponse.json({ error: "Folder not found" }, { status: 404 });
+    }
 
     while (currentFolder) {
       path.unshift({
         id: currentFolder.id,
-        name: currentFolder.name
+        name: currentFolder.name,
+        parentId: currentFolder.parentId,
       });
-      
-      if (!currentFolder.parentId) break;
-      
-      currentFolder = await prisma.folder.findUnique({
-        where: { 
+
+      if (!currentFolder.parentId) {
+        break;
+      }
+
+      currentFolder = await prisma.folder.findFirst({
+        where: {
           id: currentFolder.parentId,
-          collectionId: id
-        }
+          collectionId: id,
+          ...(canViewPrivate ? {} : { isPublic: true }),
+        },
       });
+
+      if (!currentFolder) {
+        return NextResponse.json({ error: "Folder path not found" }, { status: 404 });
+      }
     }
 
     return NextResponse.json(path);

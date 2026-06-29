@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import pLimit from "p-limit";
 import { ExportedFolder } from "../../[id]/export/route";
+import { requireApiSession } from "@/lib/api/auth";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -10,8 +11,21 @@ export async function POST(
   request: Request
 ) {
   try {
+    const auth = await requireApiSession();
+    if (auth.response) {
+      return auth.response;
+    }
+
     const { name, description, folders, collectionId, folderMap } =
       await request.json();
+
+    if (!Array.isArray(folders)) {
+      return NextResponse.json({ error: "Invalid folders payload" }, { status: 400 });
+    }
+
+    if (!collectionId && (typeof name !== "string" || !name.trim())) {
+      return NextResponse.json({ error: "Collection name is required" }, { status: 400 });
+    }
 
     // Prevent import if any other collection already exists
     const existingCollectionsCount = await prisma.collection.count();
@@ -21,7 +35,7 @@ export async function POST(
     }
 
     let targetCollection;
-    let insideFolderMap: { [key: string]: string }[] = folderMap || [];
+    let insideFolderMap: { tempId: string; id: string }[] = Array.isArray(folderMap) ? folderMap : [];
 
     // Handle collection (create new or use existing)
     if (collectionId) {
@@ -35,7 +49,7 @@ export async function POST(
     } else {
       // Check if collection with the same name already exists
       const existingCollection = await prisma.collection.findFirst({
-        where: { name: name },
+        where: { name: name.trim() },
       });
 
       if (existingCollection) {
@@ -45,8 +59,8 @@ export async function POST(
       // Create new collection
       targetCollection = await prisma.collection.create({
         data: {
-          name: name,
-          description: description,
+          name: name.trim(),
+          description: typeof description === "string" ? description : "",
         },
       });
 
@@ -73,9 +87,9 @@ export async function POST(
         // Create folder
         const createdFolder = await prisma.folder.create({
           data: {
-            name: folder.name,
+            name: folder.name || "Untitled folder",
             icon: folder.icon,
-            sortOrder: folder.sortOrder,
+            sortOrder: Number.isFinite(folder.sortOrder) ? folder.sortOrder : 0,
             parentId: parentId,
             collectionId: targetCollection.id,
             isPublic: true,
@@ -102,7 +116,7 @@ export async function POST(
   } catch (error) {
     console.error("Import error:", error);
     return NextResponse.json(
-      { error: "Failed to import folders", details: String(error) },
+      { error: "Failed to import folders" },
       { status: 500 }
     );
   }

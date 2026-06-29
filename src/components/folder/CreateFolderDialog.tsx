@@ -1,14 +1,12 @@
-import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -16,6 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { useCallback, useEffect, useState } from "react";
 
 interface Folder {
   id: string;
@@ -35,7 +35,7 @@ export function CreateFolderDialog({
   onOpenChange,
   collectionId,
   currentFolderId,
-  onSuccess
+  onSuccess,
 }: CreateFolderDialogProps) {
   const [loading, setLoading] = useState(false);
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -46,22 +46,21 @@ export function CreateFolderDialog({
     parentId: currentFolderId || "root",
   });
 
-  // 获取当前集合的所有文件夹
+  const fetchFolders = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/collections/${collectionId}/folders`);
+      const data = await response.json();
+      setFolders(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Failed to get folder.", error);
+    }
+  }, [collectionId]);
+
   useEffect(() => {
     if (collectionId) {
       fetchFolders();
     }
-  }, [collectionId]);
-
-  const fetchFolders = async () => {
-    try {
-      const response = await fetch(`/api/collections/${collectionId}/folders`);
-      const data = await response.json();
-      setFolders(data);
-    } catch (error) {
-      console.error("Failed to get folder.", error);
-    }
-  };
+  }, [collectionId, fetchFolders]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +73,7 @@ export function CreateFolderDialog({
         body: JSON.stringify({
           ...formData,
           collectionId,
-          parentId: formData.parentId === "root" ? null : formData.parentId
+          parentId: formData.parentId === "root" ? null : formData.parentId,
         }),
       });
 
@@ -84,12 +83,12 @@ export function CreateFolderDialog({
 
       onOpenChange(false);
       onSuccess?.();
-      
+
       setFormData({
         name: "",
         isPublic: true,
         password: "",
-        parentId: currentFolderId || "",
+        parentId: currentFolderId || "root",
       });
     } catch (error) {
       console.error("Failed to create folder:", error);
@@ -139,20 +138,19 @@ export function CreateFolderDialog({
             </Select>
           </div>
 
-          {/* 暂时注释掉公开访问开关
-          <div className="flex items-center space-x-2">
+          <div className="hidden items-center space-x-2">
             <Switch
               checked={formData.isPublic}
               onCheckedChange={(checked) =>
                 setFormData((prev) => ({ ...prev, isPublic: checked }))
               }
             />
-            <Label>公开访问</Label>
+            <Label>Public Access</Label>
           </div>
 
           {!formData.isPublic && (
             <div className="space-y-2">
-              <Label>访问密码</Label>
+              <Label>Password</Label>
               <Input
                 type="password"
                 value={formData.password}
@@ -162,7 +160,6 @@ export function CreateFolderDialog({
               />
             </div>
           )}
-          */}
 
           <div className="flex justify-end gap-2">
             <Button

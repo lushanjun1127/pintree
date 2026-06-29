@@ -110,7 +110,7 @@ export function BookmarkGrid({
   }
 
   // 获取书签和文件夹数据的异步函数
-  const fetchBookmarkData = async (folderId: string | null) => {
+  const fetchBookmarkData = useCallback(async (folderId: string | null) => {
     try {
       setLoading(true);
       
@@ -147,7 +147,7 @@ export function BookmarkGrid({
     } finally {
       setLoading(false);
     }
-  };
+  }, [collectionId]);
 
   // 监听路由参数和刷新触发器变化
   useEffect(() => {
@@ -155,7 +155,7 @@ export function BookmarkGrid({
       console.log("Fetching data with:", { collectionId, currentFolderId });
       fetchBookmarkData(currentFolderId);
     }
-  }, [collectionId, currentFolderId, refreshTrigger]); 
+  }, [collectionId, currentFolderId, refreshTrigger, fetchBookmarkData]); 
 
   // 处理文件夹点击事件
   const handleFolderNavigation = async (folderId: string | null) => {

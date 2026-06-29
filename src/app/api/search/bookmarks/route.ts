@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
+import { parsePositiveInt } from "@/lib/api/params";
 
 function getSearchWhereClause(query: string, scope: string, collectionId: string | null, isAuthenticated: boolean) {
   const baseConditions = {
@@ -15,12 +16,26 @@ function getSearchWhereClause(query: string, scope: string, collectionId: string
   };
 
   if (scope === 'current' && collectionId) {
-    return {
-      AND: [
-        baseConditions,
-        { collectionId: collectionId }
-      ]
-    };
+    return isAuthenticated
+      ? {
+          AND: [
+            baseConditions,
+            { collectionId: collectionId }
+          ]
+        }
+      : {
+          AND: [
+            baseConditions,
+            { collectionId: collectionId },
+            { collection: { isPublic: true } },
+            {
+              OR: [
+                { folderId: null },
+                { folder: { isPublic: true } }
+              ]
+            }
+          ]
+        };
   }
 
   if (scope === 'all') {
@@ -29,8 +44,14 @@ function getSearchWhereClause(query: string, scope: string, collectionId: string
     } else {
       return {
         AND: [
-          baseConditions,
-          { collection: { isPublic: true } }
+            baseConditions,
+          { collection: { isPublic: true } },
+          {
+            OR: [
+              { folderId: null },
+              { folder: { isPublic: true } }
+            ]
+          }
         ]
       };
     }
@@ -49,15 +70,19 @@ export async function GET(request: Request) {
     const session = await getServerSession(authOptions);
     const { searchParams } = new URL(request.url);
     
-    const query = searchParams.get("q");
+    const query = searchParams.get("q")?.trim();
     const scope = searchParams.get("scope") || "all";
     const collectionId = searchParams.get("collectionId");
-    const page = parseInt(searchParams.get("page") || "1");
-    const pageSize = parseInt(searchParams.get("pageSize") || "100");
+    const page = parsePositiveInt(searchParams.get("page"), 1, 10_000);
+    const pageSize = parsePositiveInt(searchParams.get("pageSize"), 100, 100);
     const skip = (page - 1) * pageSize;
 
     if (!query) {
       return NextResponse.json({ bookmarks: [], total: 0 });
+    }
+
+    if (query.length > 100) {
+      return NextResponse.json({ error: "Search query is too long" }, { status: 400 });
     }
 
     const whereClause = getSearchWhereClause(query, scope, collectionId, !!session);
