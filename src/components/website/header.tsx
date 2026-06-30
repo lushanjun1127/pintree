@@ -10,6 +10,8 @@ import Link from "next/link";
 import CreateBookmarkDialogGlobal from "@/components/bookmark/CreateBookmarkDialogGlobal";
 import {  useSearchParams, useRouter, usePathname } from "next/navigation";
 
+// 在适当的位置添加语言切换组件
+import LanguageSwitcher from '@/components/common/LanguageSwitcher';
 
 interface Collection {
   id: string;
@@ -75,7 +77,7 @@ export function Header({
               onClick={() => setDialogOpen(true)}
             >
               <Plus className="h-4 w-4 mr-2" />
-              New Bookmark
+              新建书签
             </Button>
           </>
         )}

@@ -34,30 +34,27 @@ import { useRouter } from "next/navigation";
 
 import { revalidateData } from "@/actions/revalidate-data";
 
+import { useTranslation } from "@/hooks/useTranslation";
 
+
+const defaultSettings = {
+  websiteName: "",
+  siteUrl: "",
+  description: "",
+  keywords: "",
+  copyrightText: "© 2024 Pintree. All rights reserved.",
+  contactEmail: "",
+  githubUrl: "",
+  twitterUrl: "",
+  logoUrl: "",
+  faviconUrl: "",
+  googleAnalyticsId: "",
+  clarityId: "",
+};
 
 export default function BasicSettingsPage() {
-  const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"basicInfo" |"statistics" | "footerSettings" | "socialMedia">("basicInfo");
   const [loading, setLoading] = useState(false);
-  const [settings, setSettings] = useState({
-    websiteName: "",
-    logoUrl: "",
-    faviconUrl: "",
-    githubUrl: "",
-    twitterUrl: "",
-    discordUrl: "",
-    weixinUrl: "",
-    weiboUrl: "",
-    bilibiliUrl: "",
-    zhihuUrl: "",
-    youtubeUrl: "",
-    linkedinUrl: "",
-    copyrightText: "",
-    contactEmail: "",
-    googleAnalyticsId: "",
-    clarityId: "",
-  });
+  const [settings, setSettings] = useState(defaultSettings);
 
   // 加载设置数据
   useEffect(() => {
@@ -97,111 +94,62 @@ export default function BasicSettingsPage() {
     loadSettings();
   }, []);
 
-  // 处理输入变化
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setSettings((prev) => ({
+    setSettings(prev => ({
       ...prev,
-      [name]: value,
+      [name]: value
     }));
   };
 
-  // 提交表单
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     try {
       setLoading(true);
-      console.log("Submitted settings for tab:", activeTab); // 调试日志
-  
       const saveSettingPromises = [];
-  
-      // 根据当前标签页筛选需要保存的设置项
-      const settingsToSave = (() => {
-        switch (activeTab) {
-          case "basicInfo":
-            return {
-              websiteName: settings.websiteName,
-            };
-          case "statistics":
-            return {
-              googleAnalyticsId: settings.googleAnalyticsId,
-              clarityId: settings.clarityId
-            };
-          case "footerSettings":
-            return {
-              copyrightText: settings.copyrightText,
-              contactEmail: settings.contactEmail
-            };
-          case "socialMedia":
-            return {
-              githubUrl: settings.githubUrl,
-              twitterUrl: settings.twitterUrl,
-              discordUrl: settings.discordUrl,
-              weixinUrl: settings.weixinUrl,
-              weiboUrl: settings.weiboUrl,
-              bilibiliUrl: settings.bilibiliUrl,
-              zhihuUrl: settings.zhihuUrl,
-              youtubeUrl: settings.youtubeUrl,
-              linkedinUrl: settings.linkedinUrl
-            };
-          default:
-            return {};
-        }
-      })();
-  
-      // 处理图片上传（仅针对基本信息标签页）
-      if (activeTab === "basicInfo") {
-        const logoInput = document.getElementById('logoUrl') as HTMLInputElement;
-        const faviconInput = document.getElementById('faviconUrl') as HTMLInputElement;
-  
-        if (logoInput && logoInput.files && logoInput.files.length > 0) {
-          const logoFile = logoInput.files[0];
-          const logoFormData = new FormData();
-          logoFormData.append('settingKey', 'logoUrl');
-          logoFormData.append('file', logoFile);
-          saveSettingPromises.push(
-            updateSettingImage(logoFormData)
-          );
-        }
-  
-        if (faviconInput && faviconInput.files && faviconInput.files.length > 0) {
-          const faviconFile = faviconInput.files[0];
-          const faviconFormData = new FormData();
-          faviconFormData.append('settingKey', 'faviconUrl');
-          faviconFormData.append('file', faviconFile);
-          saveSettingPromises.push(
-            updateSettingImage(faviconFormData)
-          );
-        }
-      }
-  
-      // 添加基本设置保存到 saveSettingPromises
+
+      // 保存基本设置
       saveSettingPromises.push(
         fetch("/api/settings", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(settingsToSave),
-        }).then(async response => {
-          if (!response.ok) {
-            const errorData = await response.json();
-            console.error("API error response:", errorData);
-            throw new Error(errorData.error || "Save failed");
-          }
-          return response.json();
-        }).then(result => {
-          console.log("Save success:", result); // 调试日志
+          body: JSON.stringify({
+            websiteName: settings.websiteName,
+            siteUrl: settings.siteUrl,
+            description: settings.description,
+            keywords: settings.keywords,
+            copyrightText: settings.copyrightText,
+            contactEmail: settings.contactEmail,
+            githubUrl: settings.githubUrl,
+            twitterUrl: settings.twitterUrl,
+            logoUrl: settings.logoUrl,
+            faviconUrl: settings.faviconUrl,
+          }),
         })
       );
-  
-      // 并行处理所有操作
-      await Promise.all(saveSettingPromises);
-  
-      toast.success(`Settings saved`);
 
-      revalidateData();
+      // 保存统计设置
+      saveSettingPromises.push(
+        fetch("/api/settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            googleAnalyticsId: settings.googleAnalyticsId,
+            clarityId: settings.clarityId,
+          }),
+        })
+      );
+
+      // 等待所有设置保存完成
+      await Promise.all(saveSettingPromises);
+
+      // 重新验证数据
+      await revalidateData('settings');
+
+      toast.success("设置保存成功");
     } catch (error) {
-      console.error("Save settings failed:", error);
-      toast.error(error instanceof Error ? error.message : "Save settings failed");
+      toast.error("保存设置失败");
     } finally {
       setLoading(false);
     }
@@ -209,67 +157,106 @@ export default function BasicSettingsPage() {
 
   return (
     <div className="h-full bg-[#f9f9f9]">
-      <AdminHeader title="Basic Settings" />
+      <AdminHeader title="基础设置" />
 
-      <div className="mx-auto px-4 py-12 bg-[#f9f9f9]">
-        <form onSubmit={handleSubmit} className="max-w-3xl mx-auto space-y-8">
-          <Tabs 
-            value={activeTab} 
-            onValueChange={(value) => setActiveTab(value as typeof activeTab)}
-            className="w-full"
-          >
-            <TabsList className="grid w-full grid-cols-4 mb-6">
-              <TabsTrigger value="basicInfo">Basic Info</TabsTrigger>
-              <TabsTrigger value="statistics">Statistics</TabsTrigger>
-              <TabsTrigger value="footerSettings">Footer</TabsTrigger>
-              <TabsTrigger value="socialMedia">Social Media</TabsTrigger>
+      <div className="container mx-auto py-10">
+        <AdminHeader title="基础设置" />
+        <Toaster position="top-center" />
+            
+        <form onSubmit={handleSubmit}>
+          <Tabs defaultValue="basic" className="space-y-6">
+            <TabsList className="grid w-4/5 grid-cols-4">
+              <TabsTrigger value="basic">基本信息</TabsTrigger>
+              <TabsTrigger value="statistics">统计代码</TabsTrigger>
+              <TabsTrigger value="footerSettings">页脚设置</TabsTrigger>
+              <TabsTrigger value="socialMedia">社交媒体</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="basicInfo">
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground font-normal">
-                  Basic Information
-                </p>
-                <Card className="border bg-white">
-                  <CardHeader className="border-b">
-                    <CardTitle>Basic Information</CardTitle>
-                    <CardDescription>Set the basic information of your website</CardDescription>
-                  </CardHeader>
-                  <CardContent className="grid gap-4 p-6">
-                    <div className="grid gap-2">
-                      <Label htmlFor="websiteName">Website Name</Label>
-                      <Input
-                        id="websiteName"
-                        name="websiteName"
-                        value={settings.websiteName}
-                        onChange={handleChange}
-                        placeholder="Enter your website name"
-                      />
-                    </div>
-
-                    <div className="grid gap-2">
-                      <Label>Website Logo</Label>
-                      <LogoUploader />
-                    </div>
-
-                    <div className="grid gap-2">
-                      <Label>Website Favicon</Label>
-                      <FaviconUploader />
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+            <TabsContent value="basic" className="space-y-6">
+              <Card className="border bg-white">
+                <CardHeader className="border-b">
+                  <CardTitle>网站信息</CardTitle>
+                  <CardDescription>设置您的网站基本信息</CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-6 p-6">
+                  <div className="grid gap-2">
+                    <Label htmlFor="websiteName">网站名称</Label>
+                    <Input
+                      id="websiteName"
+                      name="websiteName"
+                      value={settings.websiteName}
+                      onChange={handleChange}
+                      placeholder="请输入您的网站名称"
+                    />
+                  </div>
+      
+                  <div className="grid gap-2">
+                    <Label htmlFor="siteUrl">网站URL</Label>
+                    <Input
+                      id="siteUrl"
+                      name="siteUrl"
+                      value={settings.siteUrl}
+                      onChange={handleChange}
+                      placeholder="https://yoursite.com"
+                    />
+                  </div>
+      
+                  <div className="grid gap-2">
+                    <Label htmlFor="description">网站描述</Label>
+                    <Textarea
+                      id="description"
+                      name="description"
+                      value={settings.description}
+                      onChange={handleChange}
+                      placeholder="输入网站描述"
+                      rows={3}
+                    />
+                  </div>
+      
+                  <div className="grid gap-2">
+                    <Label htmlFor="keywords">关键词</Label>
+                    <Input
+                      id="keywords"
+                      name="keywords"
+                      value={settings.keywords}
+                      onChange={handleChange}
+                      placeholder="输入关键词，以逗号分隔"
+                    />
+                  </div>
+      
+                  <div className="grid gap-2">
+                    <Label htmlFor="copyrightText">版权文本</Label>
+                    <Input
+                      id="copyrightText"
+                      name="copyrightText"
+                      value={settings.copyrightText}
+                      onChange={handleChange}
+                      placeholder="输入版权信息"
+                    />
+                  </div>
+                  
+                  <div className="grid gap-2">
+                    <Label>网站Logo</Label>
+                    <LogoUploader />
+                  </div>
+      
+                  <div className="grid gap-2">
+                    <Label>网站图标</Label>
+                    <FaviconUploader />
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="statistics">
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground font-normal">
-                  Statistics Code
+                  统计代码
                 </p>
                 <Card className="border bg-white">
                   <CardHeader className="border-b">
-                    <CardTitle>Statistics Code</CardTitle>
-                    <CardDescription>Set the statistics code of your website</CardDescription>
+                    <CardTitle>统计代码</CardTitle>
+                    <CardDescription>设置您网站的统计代码</CardDescription>
                   </CardHeader>
                   <CardContent className="grid gap-4 p-6">
                     <div className="grid gap-2">
@@ -284,7 +271,7 @@ export default function BasicSettingsPage() {
                         placeholder="G-XXXXXXXXXX"
                       />
                     </div>
-
+      
                     <div className="grid gap-2">
                       <Label htmlFor="clarityId">Microsoft Clarity ID</Label>
                       <Input
@@ -299,11 +286,11 @@ export default function BasicSettingsPage() {
                 </Card>
               </div>
             </TabsContent>
-
+      
             <TabsContent value="footerSettings">
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground font-normal">
-                  Footer Settings
+                  页脚设置
                 </p>
                 <FooterSettingsCard
                   settings={settings}
@@ -311,11 +298,11 @@ export default function BasicSettingsPage() {
                 />
               </div>
             </TabsContent>
-
+      
             <TabsContent value="socialMedia">
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground font-normal">
-                  Social Media Links
+                  社交媒体链接
                 </p>
                 <SocialMediaCard
                   settings={settings}
@@ -327,7 +314,7 @@ export default function BasicSettingsPage() {
 
           <div className="flex justify-end">
             <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : "Save Settings"}
+              {loading ? "保存中..." : "保存设置"}
             </Button>
           </div>
         </form>
@@ -335,12 +322,6 @@ export default function BasicSettingsPage() {
     </div>
   );
 }
-
-
-// 添加 Logo 上传组件
-function LogoUploader() {
-  const { images, isLoading, error } = useSettingImages("logoUrl");
-  const [currentLogoUrl, setCurrentLogoUrl] = useState("");
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.[0]) return;
@@ -358,6 +339,32 @@ function LogoUploader() {
     reader.readAsDataURL(file);
   };
 
+import { useSettingImages } from "@/hooks/useSettingImages";
+import { updateSettingImage } from "@/actions/update-setting-image";
+import { Skeleton } from "@/components/ui/skeleton";
+import Image from "next/image";
+
+// 添加 Logo 上传组件
+function LogoUploader() {
+  const { images, isLoading, error } = useSettingImages("logoUrl");
+  const [currentLogoUrl, setCurrentLogoUrl] = useState("");
+  
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.[0]) return;
+    
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      
+      // 立即展示预览
+      setCurrentLogoUrl(base64);
+    };
+    
+    reader.readAsDataURL(file);
+  };
+  
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-4">
@@ -385,7 +392,7 @@ function LogoUploader() {
         />
       </div>
       <p className="text-sm text-muted-foreground">
-        Recommended size: 520x120px, supports PNG, JPG format
+        推荐尺寸：520x120px，支持PNG、JPG格式
       </p>
     </div>
   );
@@ -438,7 +445,7 @@ function FaviconUploader() {
         />
       </div>
       <p className="text-sm text-muted-foreground">
-        Recommended size: 512x512px, supports ICO, PNG format
+        推荐尺寸：512x512px，支持ICO、PNG格式
       </p>
     </div>
   );

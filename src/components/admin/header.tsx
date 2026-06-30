@@ -8,7 +8,7 @@ interface AdminHeaderProps {
   action?: React.ReactNode;
 }
 
-export function AdminHeader({ title, children, action }: AdminHeaderProps) {
+export function AdminHeader({ title, action }: AdminHeaderProps) {
   return (
     <div className="border-b">
       <div className="flex h-16 items-center px-8 bg-white">
@@ -20,11 +20,9 @@ export function AdminHeader({ title, children, action }: AdminHeaderProps) {
           <h2 className="text-lg font-semibold">{title}</h2>
           <div className="flex items-center gap-4">
             {action}
-            {children}
           </div>
         </div>
       </div>
     </div>
   );
 }
-

@@ -199,7 +199,7 @@ export default function CreateBookmarkDialogGlobal({
     try {
       const response = await fetch("/api/collections");
       const data = await response.json();
-      setCollections(data);
+      setCollections(data.collections || data);
     } catch (error) {
       console.error("Failed to fetch collections:", error);
     }
@@ -207,94 +207,158 @@ export default function CreateBookmarkDialogGlobal({
 
   const fetchFolders = async (collectionId: string) => {
     try {
-      const response = await fetch(`/api/collections/${collectionId}/folders?all=true`);
+      const response = await fetch(`/api/collections/${collectionId}/folders`);
       const data = await response.json();
-      
-      // 指定 Map 的类型
-      const folderMap = new Map<string, Folder>(data.map((folder: Folder) => [folder.id, folder]));
-      
-      // 处理文件夹数据，添加完整路径显示
-      const processedFolders = data.map((folder: Folder) => {
-        const path: string[] = [];
-        let current: Folder | null = folder;
-        
-        // 递归构建完整路径
-        while (current) {
-          path.unshift(current.name);
-          current = current.parentId ? folderMap.get(current.parentId) || null : null;
-        }
-        
-        return {
-          ...folder,
-          displayName: path.join(" / ")
-        };
-      });
-      
-      setFolders(processedFolders);
+      setFolders(data.folders || data);
     } catch (error) {
       console.error("Failed to fetch folders:", error);
+      setFolders([]);
     }
   };
 
-  // 添加 URL 验证函数
-  const isValidUrl = (url: string) => {
+  const handleUrlChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const url = e.target.value;
+    setFormData(prev => ({ ...prev, url }));
+
+    if (url && /^https?:\/\/.+/.test(url)) {
+      try {
+        const response = await fetch(`/api/url-info?url=${encodeURIComponent(url)}`);
+        if (response.ok) {
+          const info = await response.json();
+          setFormData(prev => ({
+            ...prev,
+            title: prev.title || info.title || "",
+            description: prev.description || info.description || "",
+            icon: prev.icon || info.icon || ""
+          }));
+          setAvailableIcons(info.icons || []);
+          setHasLoadedInfo(true);
+        }
+      } catch (err) {
+        console.error("Failed to fetch URL info:", err);
+      }
+    }
+  };
+
+  const handleCollectionChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      collectionId: value,
+      folderId: "none", // 更改集合时重置文件夹选择
+      folderName: ""    // 重置文件夹名称
+    }));
+  };
+
+  const toggleFolderSelection = () => {
+    if (formData.folderId === "none") {
+      // 如果当前是"无文件夹"，打开下拉菜单让用户选择或创建
+      setPopoverOpen(true);
+    } else {
+      // 如果当前已选择文件夹，切换回"无文件夹"状态
+      setFormData(prev => ({ ...prev, folderId: "none", folderName: "" }));
+    }
+  };
+
+  const handleCreateNewFolder = async () => {
+    if (!formData.folderName.trim()) {
+      setError("Folder name is required");
+      return;
+    }
+
     try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
+      const response = await fetch("/api/folders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.folderName,
+          collectionId: formData.collectionId
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setError(result.error || "Failed to create folder");
+        return;
+      }
+
+      // 添加新文件夹到列表
+      const newFolder = result.folder;
+      setFolders(prev => [...prev, newFolder]);
+      
+      // 选择新创建的文件夹
+      setFormData(prev => ({
+        ...prev,
+        folderId: newFolder.id,
+        folderName: newFolder.name
+      }));
+
+      setPopoverOpen(false);
+    } catch (error) {
+      console.error("Failed to create folder:", error);
+      setError("Failed to create folder");
     }
   };
-
-  // 如果没有书签集合,显示提示信息
-  if (collections.length === 0) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Bookmark</DialogTitle>
-          </DialogHeader>
-          
-          <Alert>
-            <AlertDescription>
-              Please create a bookmark collection first.
-              <Link href="/admin/collections" className="ml-2 text-blue-600 hover:underline">
-                Go to create
-              </Link>
-            </AlertDescription>
-          </Alert>
-        </DialogContent>
-      </Dialog>
-    );
-  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>New Bookmark</DialogTitle>
+          <DialogTitle>Add Bookmark</DialogTitle>
         </DialogHeader>
-
         <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="text-sm text-red-500 p-2 bg-red-50 rounded">
-              {error}
-            </div>
-          )}
-          
           <div className="space-y-2">
-            <Label>Collection</Label>
-            <Select
-              value={formData.collectionId}
-              onValueChange={(value) => {
-                setFormData(prev => ({ ...prev, collectionId: value, folderId: "" }));
-              }}
-            >
+            <Label htmlFor="url">URL *</Label>
+            <Input
+              id="url"
+              type="url"
+              value={formData.url}
+              onChange={handleUrlChange}
+              placeholder="https://example.com"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="title">Title *</Label>
+            <Input
+              id="title"
+              value={formData.title}
+              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+              placeholder="Enter title"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              placeholder="Enter description"
+              rows={3}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="icon">Icon URL</Label>
+            <Input
+              id="icon"
+              value={formData.icon}
+              onChange={(e) => setFormData(prev => ({ ...prev, icon: e.target.value }))}
+              placeholder="https://example.com/icon.png"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Collection *</Label>
+            <Select value={formData.collectionId} onValueChange={handleCollectionChange}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a collection" />
+                <SelectValue placeholder="Select collection" />
               </SelectTrigger>
               <SelectContent>
-                {collections?.map((collection) => (
+                {collections.map((collection) => (
                   <SelectItem key={collection.id} value={collection.id}>
                     {collection.name}
                   </SelectItem>
@@ -312,8 +376,9 @@ export default function CreateBookmarkDialogGlobal({
                   role="combobox"
                   aria-expanded={popoverOpen}
                   className="w-full justify-between"
+                  type="button"
                 >
-                  {folders.find(f => f.id === formData.folderId)?.displayName || "Select a folder"}
+                  {formData.folderId === "none" ? "No folder" : formData.folderName}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
@@ -321,27 +386,29 @@ export default function CreateBookmarkDialogGlobal({
                 <Command>
                   <CommandInput placeholder="Search folders..." />
                   <CommandList>
-                    <CommandEmpty>No folders found</CommandEmpty>
+                    <CommandEmpty>No folders found.</CommandEmpty>
                     <CommandGroup>
                       <CommandItem
+                        value="none"
                         onSelect={() => {
-                          setFormData(prev => ({ ...prev, folderId: "" }));
+                          setFormData(prev => ({ ...prev, folderId: "none", folderName: "" }));
                           setPopoverOpen(false);
                         }}
                       >
                         <Check
                           className={cn(
                             "mr-2 h-4 w-4",
-                            !formData.folderId ? "opacity-100" : "opacity-0"
+                            formData.folderId === "none" ? "opacity-100" : "opacity-0"
                           )}
                         />
-                        <span>Root</span>
+                        No folder
                       </CommandItem>
                       {folders.map((folder) => (
                         <CommandItem
                           key={folder.id}
+                          value={folder.name}
                           onSelect={() => {
-                            setFormData(prev => ({ ...prev, folderId: folder.id }));
+                            setFormData(prev => ({ ...prev, folderId: folder.id, folderName: folder.name }));
                             setPopoverOpen(false);
                           }}
                         >
@@ -352,7 +419,7 @@ export default function CreateBookmarkDialogGlobal({
                             )}
                           />
                           <Folder className="mr-2 h-4 w-4" />
-                          <span>{folder.displayName}</span>
+                          {folder.name}
                         </CommandItem>
                       ))}
                     </CommandGroup>
@@ -363,159 +430,28 @@ export default function CreateBookmarkDialogGlobal({
           </div>
 
           <div className="space-y-2">
-            <Label>URL</Label>
-            <Input
-              type="url"
-              value={formData.url}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, url: e.target.value }))
-              }
-              placeholder="https://example.com"
-              required
-            />
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="isFeatured"
+                checked={formData.isFeatured}
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isFeatured: checked }))}
+              />
+              <Label htmlFor="isFeatured">Featured</Label>
+            </div>
           </div>
 
-          {/* 仅在获取信息后显示这些字段 */}
-          {hasLoadedInfo && (
-            <>
-              <div className="space-y-2">
-                <Label>Title</Label>
-                <Input
-                  value={formData.title}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, title: e.target.value }))
-                  }
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Description</Label>
-                <Textarea
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, description: e.target.value }))
-                  }
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Icon URL</Label>
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <Input
-                      type="url"
-                      value={formData.icon}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, icon: e.target.value }))
-                      }
-                    />
-                  </div>
-                  {formData.icon && (
-                    <div className="flex items-center">
-                      <img
-                        src={formData.icon}
-                        alt="Icon preview"
-                        className="w-8 h-8 object-contain"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-                {availableIcons.length > 0 && (
-                  <div className="mt-2">
-                    <Label className="text-sm text-gray-500">Select an icon</Label>
-                    <div className="grid grid-cols-6 gap-2 mt-1">
-                      {availableIcons.map((iconUrl, index) => (
-                        <button
-                          key={index}
-                          type="button"
-                          className={`p-2 border rounded hover:bg-gray-100 ${
-                            formData.icon === iconUrl ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                          }`}
-                          onClick={() => setFormData(prev => ({ ...prev, icon: iconUrl }))}
-                        >
-                          <img
-                            src={iconUrl}
-                            alt={`Icon ${index + 1}`}
-                            className="w-6 h-6 object-contain mx-auto"
-                            onError={(e) => {
-                              (e.currentTarget.parentElement as HTMLElement).style.display = 'none';
-                            }}
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </>
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
 
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setError("");
-                onOpenChange(false);
-              }}
-            >
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button 
-              type="submit" 
-              disabled={loading}
-              onClick={async (e) => {
-                e.preventDefault();
-                
-                if (!formData.url) {
-                  setError("Please enter a URL");
-                  return;
-                }
-
-                if (!isValidUrl(formData.url)) {
-                  setError("Please enter a valid URL, e.g. https://example.com");
-                  return;
-                }
-
-                if (!hasLoadedInfo) {
-                  try {
-                    setLoading(true);
-                    const response = await fetch("/api/url-info", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ url: formData.url }),
-                    });
-                    
-                    const data: UrlInfo = await response.json();
-                    
-                    if (!response.ok) {
-                      throw new Error(data.error || "Failed to get URL information");
-                    }
-                    
-                    setFormData(prev => ({
-                      ...prev,
-                      title: data.title || prev.title,
-                      description: data.description || prev.description,
-                      icon: data.icon || prev.icon,
-                    }));
-                    setAvailableIcons(data.icons || []);
-                    setHasLoadedInfo(true);
-                  } catch (error) {
-                    console.error("Failed to get URL information:", error);
-                    setError(error instanceof Error ? error.message : "Failed to get URL information");
-                  } finally {
-                    setLoading(false);
-                  }
-                } else {
-                  handleSubmit(e);
-                }
-              }}
-            >
-              {loading ? "Getting..." : (hasLoadedInfo ? "Create" : "Get Info")}
+            <Button type="submit" disabled={loading}>
+              {loading ? "Saving..." : "Save"}
             </Button>
           </div>
         </form>

@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminHeader } from "@/components/admin/header";
 import { revalidateData } from "@/actions/revalidate-data";
+
 const defaultSettings = {
   // websiteName: "",
   description: "",
@@ -16,8 +17,8 @@ const defaultSettings = {
   siteUrl: "",
 };
 
-
 export default function SeoSettingsPage() {
+  // Removed translation hook, using hardcoded Chinese text
   const [loading, setLoading] = useState(false);
   const [settings, setSettings] = useState(defaultSettings);
 
@@ -35,7 +36,7 @@ export default function SeoSettingsPage() {
           ...data
         }));
       } catch (error) {
-        toast.error("Failed to load settings");
+        toast.error("加载设置失败");
       } finally {
         setLoading(false);
       }
@@ -58,35 +59,23 @@ export default function SeoSettingsPage() {
     // 验证网站 URL 格式
     try {
       if (settings.siteUrl) {
-        // 去除首尾空格和多余斜杠
-        const cleanUrl = settings.siteUrl.trim().replace(/\/+$/, '');
-        
-        const url = new URL(cleanUrl);
-        if (!url.protocol.startsWith('http')) {
-          throw new Error('Website URL must start with http:// or https://');
+        if (!settings.siteUrl.startsWith('http://') && !settings.siteUrl.startsWith('https://')) {
+          throw new Error('网站URL必须以http://或https://开头');
         }
         
-        // 验证域名格式
-        const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/;
-        if (!domainRegex.test(url.hostname)) {
-          throw new Error('Please enter a valid domain');
-        }
-
-        // 更新为清理后的 URL
-        settings.siteUrl = cleanUrl;
+        // 验证URL格式
+        new URL(settings.siteUrl);
       } else {
-        throw new Error('Please enter website URL');
+        throw new Error('请输入网站URL');
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Website URL format is incorrect');
+      toast.error(error instanceof Error ? error.message : '网站URL格式不正确');
       return;
     }
 
     try {
       setLoading(true);
       const saveSettingPromises = [];
-
-
 
       // 添加基本设置保存到 saveSettingPromises
       saveSettingPromises.push(
@@ -95,121 +84,99 @@ export default function SeoSettingsPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ...settings,
-            group: 'seo'
           }),
-        }).then(async response => {
-          if (!response.ok) {
-            const errorData = await response.json();
-            console.error("API error response:", errorData);
-            throw new Error(errorData.error || "Save failed");
-          }
-          return response.json();
-        }).then(result => {
-          console.log("Save success:", result); // 调试日志
         })
       );
 
-      // 并行处理所有操作
+      // 等待所有设置保存完成
       await Promise.all(saveSettingPromises);
 
-      revalidateData();
+      // 重新验证数据
+      await revalidateData('settings');
 
-      toast.success("SEO settings saved");
+      toast.success("设置保存成功");
     } catch (error) {
-      console.error('Failed to save settings:', error);
-      toast.error(error instanceof Error ? error.message : "Failed to save settings");
+      toast.error("保存设置失败");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="h-full bg-[#f9f9f9]">
-      <Toaster />
-      <AdminHeader title="SEO Settings" />
+    <div className="container mx-auto py-10">
+      <AdminHeader title="SEO设置" />
+      <Toaster position="top-center" />
 
-      <div className="mx-auto px-4 py-12 bg-[#f9f9f9]">
-        <form onSubmit={handleSubmit} className="max-w-3xl mx-auto space-y-8">
-          <div className="space-y-8">
-            {/* SEO 设置 */}
-            <div className="space-y-4">
-              <div className="space-y-4">
-                {/* 基础 SEO */}
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground font-normal">Basic SEO</p>
-                  <Card className="border bg-white">
-                    <CardContent className="grid gap-4 p-6">
-                      <div className="grid gap-2">
-                        <label htmlFor="siteUrl" className="font-medium">
-                          Website URL
-                        </label>
-                        <Input
-                          id="siteUrl"
-                          name="siteUrl"
-                          value={settings.siteUrl}
-                          onChange={handleChange}
-                          placeholder="Enter website full URL"
-                        />
-                        <p className="text-sm text-muted-foreground">
-                          For example: https://pintree.io
-                        </p>
-                      </div>
+      <form onSubmit={handleSubmit}>
+        <div className="space-y-6">
+          <Card className="border bg-white">
+            <CardHeader className="border-b">
+              <CardTitle>SEO设置</CardTitle>
+              <CardDescription>配置您的网站SEO信息</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-6 p-6">
+              {/* <div className="grid gap-2">
+                <label htmlFor="websiteName" className="font-medium">
+                  网站标题
+                </label>
+                <Input
+                  id="websiteName"
+                  name="websiteName"
+                  value={settings.websiteName}
+                  onChange={handleChange}
+                  placeholder="Enter website title"
+                />
+              </div> */}
 
-                      {/* <div className="grid gap-2">
-                        <label htmlFor="websiteName" className="font-medium">
-                          Website Title
-                        </label>
-                        <Input
-                          id="websiteName"
-                          name="websiteName"
-                          value={settings.websiteName}
-                          onChange={handleChange}
-                          placeholder="Enter website title"
-                        />
-                      </div> */}
-
-                      <div className="grid gap-2">
-                        <label htmlFor="description" className="font-medium">
-                          Website Description
-                        </label>
-                        <Textarea
-                          id="description"
-                          name="description"
-                          value={settings.description}
-                          onChange={handleChange}
-                          placeholder="Enter website description"
-                          rows={3}
-                        />
-                      </div>
-
-                      <div className="grid gap-2">
-                        <label htmlFor="keywords" className="font-medium">
-                          Keywords
-                        </label>
-                        <Input
-                          id="keywords"
-                          name="keywords"
-                          value={settings.keywords}
-                          onChange={handleChange}
-                          placeholder="Enter keywords, separated by commas"
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-
+              <div className="grid gap-2">
+                <label htmlFor="description" className="font-medium">
+                  网站描述
+                </label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  value={settings.description}
+                  onChange={handleChange}
+                  placeholder="输入网站描述"
+                  rows={3}
+                />
               </div>
-            </div>
-          </div>
+
+              <div className="grid gap-2">
+                <label htmlFor="keywords" className="font-medium">
+                  关键词
+                </label>
+                <Input
+                  id="keywords"
+                  name="keywords"
+                  value={settings.keywords}
+                  onChange={handleChange}
+                  placeholder="输入关键词，以逗号分隔"
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <label htmlFor="siteUrl" className="font-medium">
+                  网站URL
+                </label>
+                <Input
+                  id="siteUrl"
+                  name="siteUrl"
+                  value={settings.siteUrl}
+                  onChange={handleChange}
+                  placeholder="https://yoursite.com"
+                />
+              </div>
+            </CardContent>
+          </Card>
 
           <div className="flex justify-end">
             <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : "Save Settings"}
+              {loading ? "保存中..." : "保存设置"}
             </Button>
           </div>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
   );
 }
