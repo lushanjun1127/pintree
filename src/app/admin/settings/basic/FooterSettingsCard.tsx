@@ -25,15 +25,15 @@ const FooterSettingsCard = ({
   return (
     <Card className="border bg-white">
       <CardHeader className="border-b">
-        <CardTitle>Footer Settings</CardTitle>
+        <CardTitle>页脚设置</CardTitle>
         <CardDescription>
-          Set the footer information of your website
+          设置您网站的页脚信息
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4 p-6">
         {/* 版权信息 */}
         <div className="grid gap-2">
-          <Label htmlFor="copyrightText">Copyright Information</Label>
+          <Label htmlFor="copyrightText">版权信息</Label>
           <Input
             id="copyrightText"
             name="copyrightText"
@@ -45,7 +45,7 @@ const FooterSettingsCard = ({
 
         {/* 联系邮箱 */}
         <div className="grid gap-2">
-          <Label htmlFor="contactEmail">Contact Email</Label>
+          <Label htmlFor="contactEmail">联系邮箱</Label>
           <Input
             id="contactEmail"
             name="contactEmail"

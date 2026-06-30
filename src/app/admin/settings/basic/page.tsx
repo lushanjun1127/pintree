@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { toast } from "sonner";
+import { toast, Toaster } from "sonner";
 import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
@@ -21,9 +21,6 @@ import { updateSettingImage } from "@/actions/update-setting-image";
 
 import { Skeleton } from "@/components/ui/skeleton";
 
-import FooterSettingsCard from "./FooterSettingsCard";
-import SocialMediaCard from "./SocialMediaCard";
-
 import {
   Tabs,
   TabsContent,
@@ -34,8 +31,8 @@ import { useRouter } from "next/navigation";
 
 import { revalidateData } from "@/actions/revalidate-data";
 
-import { useTranslation } from "@/hooks/useTranslation";
-
+// 删除国际化相关导入
+// import { useTranslation } from "@/hooks/useTranslation";
 
 const defaultSettings = {
   websiteName: "",
@@ -56,36 +53,21 @@ export default function BasicSettingsPage() {
   const [loading, setLoading] = useState(false);
   const [settings, setSettings] = useState(defaultSettings);
 
-  // 加载设置数据
   useEffect(() => {
     const loadSettings = async () => {
       setLoading(true);
       try {
-        const response = await fetch("/api/settings?group=basic");
+        const response = await fetch('/api/settings?group=basic');
         if (!response.ok) {
-          const errorData = await response.json();
-          console.error("Load settings failed:", errorData); // 调试日志
-          throw new Error(errorData.error || "Load settings failed");
+          throw new Error('Failed to load settings');
         }
-
         const data = await response.json();
-        console.log("Loaded settings:", data); // 调试日志
-
-        const sanitizedData = Object.keys(data).reduce(
-          (acc, key) => ({
-            ...acc,
-            [key]: data[key] ?? "", // 使用空字符串替代 undefined
-          }),
-          {}
-        );
-
-        setSettings((prev) => ({
+        setSettings(prev => ({
           ...prev,
-          ...sanitizedData,
+          ...data
         }));
       } catch (error) {
-        console.error("Load settings error:", error);
-        toast.error(error instanceof Error ? error.message : "Load settings failed");
+        toast.error("加载设置失败");
       } finally {
         setLoading(false);
       }
@@ -156,193 +138,168 @@ export default function BasicSettingsPage() {
   };
 
   return (
-    <div className="h-full bg-[#f9f9f9]">
+    <div className="container mx-auto py-10">
       <AdminHeader title="基础设置" />
+      <Toaster position="top-center" />
 
-      <div className="container mx-auto py-10">
-        <AdminHeader title="基础设置" />
-        <Toaster position="top-center" />
-            
-        <form onSubmit={handleSubmit}>
-          <Tabs defaultValue="basic" className="space-y-6">
-            <TabsList className="grid w-4/5 grid-cols-4">
-              <TabsTrigger value="basic">基本信息</TabsTrigger>
-              <TabsTrigger value="statistics">统计代码</TabsTrigger>
-              <TabsTrigger value="footerSettings">页脚设置</TabsTrigger>
-              <TabsTrigger value="socialMedia">社交媒体</TabsTrigger>
-            </TabsList>
+      <form onSubmit={handleSubmit}>
+        <Tabs defaultValue="basic" className="space-y-6">
+          <TabsList className="grid w-4/5 grid-cols-4">
+            <TabsTrigger value="basic">基本信息</TabsTrigger>
+            <TabsTrigger value="statistics">统计代码</TabsTrigger>
+            <TabsTrigger value="footerSettings">页脚设置</TabsTrigger>
+            <TabsTrigger value="socialMedia">社交媒体</TabsTrigger>
+          </TabsList>
 
-            <TabsContent value="basic" className="space-y-6">
+          <TabsContent value="basic" className="space-y-6">
+            <Card className="border bg-white">
+              <CardHeader className="border-b">
+                <CardTitle>网站信息</CardTitle>
+                <CardDescription>设置您的网站基本信息</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-6 p-6">
+                <div className="grid gap-2">
+                  <Label htmlFor="websiteName">网站名称</Label>
+                  <Input
+                    id="websiteName"
+                    name="websiteName"
+                    value={settings.websiteName}
+                    onChange={handleChange}
+                    placeholder="请输入您的网站名称"
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="siteUrl">网站URL</Label>
+                  <Input
+                    id="siteUrl"
+                    name="siteUrl"
+                    value={settings.siteUrl}
+                    onChange={handleChange}
+                    placeholder="https://yoursite.com"
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="description">网站描述</Label>
+                  <Textarea
+                    id="description"
+                    name="description"
+                    value={settings.description}
+                    onChange={handleChange}
+                    placeholder="输入网站描述"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="keywords">关键词</Label>
+                  <Input
+                    id="keywords"
+                    name="keywords"
+                    value={settings.keywords}
+                    onChange={handleChange}
+                    placeholder="输入关键词，以逗号分隔"
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="copyrightText">版权文本</Label>
+                  <Input
+                    id="copyrightText"
+                    name="copyrightText"
+                    value={settings.copyrightText}
+                    onChange={handleChange}
+                    placeholder="输入版权信息"
+                  />
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label>网站Logo</Label>
+                  <LogoUploader />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label>网站图标</Label>
+                  <FaviconUploader />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="statistics">
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground font-normal">
+                统计代码
+              </p>
               <Card className="border bg-white">
                 <CardHeader className="border-b">
-                  <CardTitle>网站信息</CardTitle>
-                  <CardDescription>设置您的网站基本信息</CardDescription>
+                  <CardTitle>统计代码</CardTitle>
+                  <CardDescription>设置您网站的统计代码</CardDescription>
                 </CardHeader>
-                <CardContent className="grid gap-6 p-6">
+                <CardContent className="grid gap-4 p-6">
                   <div className="grid gap-2">
-                    <Label htmlFor="websiteName">网站名称</Label>
+                    <Label htmlFor="googleAnalyticsId">
+                      Google Analytics ID
+                    </Label>
                     <Input
-                      id="websiteName"
-                      name="websiteName"
-                      value={settings.websiteName}
+                      id="googleAnalyticsId"
+                      name="googleAnalyticsId"
+                      value={settings.googleAnalyticsId}
                       onChange={handleChange}
-                      placeholder="请输入您的网站名称"
+                      placeholder="G-XXXXXXXXXX"
                     />
                   </div>
-      
+
                   <div className="grid gap-2">
-                    <Label htmlFor="siteUrl">网站URL</Label>
+                    <Label htmlFor="clarityId">Microsoft Clarity ID</Label>
                     <Input
-                      id="siteUrl"
-                      name="siteUrl"
-                      value={settings.siteUrl}
+                      id="clarityId"
+                      name="clarityId"
+                      value={settings.clarityId}
                       onChange={handleChange}
-                      placeholder="https://yoursite.com"
+                      placeholder="XXXXXXXXXX"
                     />
-                  </div>
-      
-                  <div className="grid gap-2">
-                    <Label htmlFor="description">网站描述</Label>
-                    <Textarea
-                      id="description"
-                      name="description"
-                      value={settings.description}
-                      onChange={handleChange}
-                      placeholder="输入网站描述"
-                      rows={3}
-                    />
-                  </div>
-      
-                  <div className="grid gap-2">
-                    <Label htmlFor="keywords">关键词</Label>
-                    <Input
-                      id="keywords"
-                      name="keywords"
-                      value={settings.keywords}
-                      onChange={handleChange}
-                      placeholder="输入关键词，以逗号分隔"
-                    />
-                  </div>
-      
-                  <div className="grid gap-2">
-                    <Label htmlFor="copyrightText">版权文本</Label>
-                    <Input
-                      id="copyrightText"
-                      name="copyrightText"
-                      value={settings.copyrightText}
-                      onChange={handleChange}
-                      placeholder="输入版权信息"
-                    />
-                  </div>
-                  
-                  <div className="grid gap-2">
-                    <Label>网站Logo</Label>
-                    <LogoUploader />
-                  </div>
-      
-                  <div className="grid gap-2">
-                    <Label>网站图标</Label>
-                    <FaviconUploader />
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
+            </div>
+          </TabsContent>
 
-            <TabsContent value="statistics">
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground font-normal">
-                  统计代码
-                </p>
-                <Card className="border bg-white">
-                  <CardHeader className="border-b">
-                    <CardTitle>统计代码</CardTitle>
-                    <CardDescription>设置您网站的统计代码</CardDescription>
-                  </CardHeader>
-                  <CardContent className="grid gap-4 p-6">
-                    <div className="grid gap-2">
-                      <Label htmlFor="googleAnalyticsId">
-                        Google Analytics ID
-                      </Label>
-                      <Input
-                        id="googleAnalyticsId"
-                        name="googleAnalyticsId"
-                        value={settings.googleAnalyticsId}
-                        onChange={handleChange}
-                        placeholder="G-XXXXXXXXXX"
-                      />
-                    </div>
-      
-                    <div className="grid gap-2">
-                      <Label htmlFor="clarityId">Microsoft Clarity ID</Label>
-                      <Input
-                        id="clarityId"
-                        name="clarityId"
-                        value={settings.clarityId}
-                        onChange={handleChange}
-                        placeholder="XXXXXXXXXX"
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-      
-            <TabsContent value="footerSettings">
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground font-normal">
-                  页脚设置
-                </p>
-                <FooterSettingsCard
-                  settings={settings}
-                  handleChange={handleChange}
-                />
-              </div>
-            </TabsContent>
-      
-            <TabsContent value="socialMedia">
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground font-normal">
-                  社交媒体链接
-                </p>
-                <SocialMediaCard
-                  settings={settings}
-                  handleChange={handleChange}
-                />
-              </div>
-            </TabsContent>
-          </Tabs>
+          <TabsContent value="footerSettings">
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground font-normal">
+                页脚设置
+              </p>
+              <FooterSettingsCard
+                settings={settings}
+                handleChange={handleChange}
+              />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="socialMedia">
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground font-normal">
+                社交媒体链接
+              </p>
+              <SocialMediaCard
+                settings={settings}
+                handleChange={handleChange}
+              />
+            </div>
+          </TabsContent>
 
           <div className="flex justify-end">
             <Button type="submit" disabled={loading}>
               {loading ? "保存中..." : "保存设置"}
             </Button>
           </div>
-        </form>
-      </div>
+        </Tabs>
+      </form>
     </div>
   );
 }
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files?.[0]) return;
-
-    const file = e.target.files[0];
-    const reader = new FileReader();
-
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
-
-      // 立即展示预览
-      setCurrentLogoUrl(base64);
-    };
-
-    reader.readAsDataURL(file);
-  };
-
-import { useSettingImages } from "@/hooks/useSettingImages";
-import { updateSettingImage } from "@/actions/update-setting-image";
-import { Skeleton } from "@/components/ui/skeleton";
-import Image from "next/image";
 
 // 添加 Logo 上传组件
 function LogoUploader() {
@@ -358,7 +315,7 @@ function LogoUploader() {
     reader.onload = (event) => {
       const base64 = event.target?.result as string;
       
-      // 立即展示预览
+      // 立即显示预览
       setCurrentLogoUrl(base64);
     };
     
@@ -392,7 +349,7 @@ function LogoUploader() {
         />
       </div>
       <p className="text-sm text-muted-foreground">
-        推荐尺寸：520x120px，支持PNG、JPG格式
+        推荐尺寸：20x120px，支持PNG、JPG格式
       </p>
     </div>
   );
@@ -411,7 +368,7 @@ function FaviconUploader() {
     reader.onload = (event) => {
       const base64 = event.target?.result as string;
 
-      // 立即展示预览
+      // 立即显示预览
       setCurrentFaviconUrl(base64);
     };
 
@@ -445,8 +402,15 @@ function FaviconUploader() {
         />
       </div>
       <p className="text-sm text-muted-foreground">
-        推荐尺寸：512x512px，支持ICO、PNG格式
+        推荐尺寸：12x512px，支持ICO、PNG格式
       </p>
     </div>
   );
 };
+
+// 导入缺少的Textarea组件
+import { Textarea } from "@/components/ui/textarea";
+
+// 导入缺少的组件
+import FooterSettingsCard from "./FooterSettingsCard";
+import SocialMediaCard from "./SocialMediaCard";
