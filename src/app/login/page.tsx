@@ -96,7 +96,8 @@ export default function LoginPage() {
             alt="Pintree Logo"
             width={40}
             height={40}
-            className="mb-8"
+            className="mb-8 mx-auto"
+            unoptimized={true}
           />
           <h1 className="text-4xl font-bold mb-6">
             Welcome to Pintree
@@ -118,6 +119,7 @@ export default function LoginPage() {
               width={60}
               height={60}
               className="mx-auto"
+              unoptimized={true}
             />
           </div>
 

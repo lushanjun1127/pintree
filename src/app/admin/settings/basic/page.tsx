@@ -372,6 +372,7 @@ function LogoUploader() {
               alt="Current Logo"
               fill
               className="object-contain p-2"
+              unoptimized={true}
             />
           )}
         </div>
@@ -424,6 +425,7 @@ function FaviconUploader() {
               alt="Current Favicon"
               fill
               className="object-contain p-1"
+              unoptimized={true}
             />
           </div>
         )}

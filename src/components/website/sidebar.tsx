@@ -372,6 +372,7 @@ export function WebsiteSidebar({
                       alt="Logo"
                       width={260}
                       height={60}
+                      unoptimized={true}
                       style={{
                         objectFit: "contain",
                       }}
