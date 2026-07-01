@@ -91,20 +91,22 @@ export default function LoginPage() {
       {/* 左侧品牌区域 */}
       <div className="hidden md:flex md:w-1/2 bg-gradient-to-br from-green-100 to-blue-100 p-12 text-black">
         <div className="max-w-xl mx-auto flex flex-col justify-center">
-          <Image 
-            src="/logo.svg"
-            alt="Pintree Logo"
-            width={40}
-            height={40}
-            className="mb-8 mx-auto"
-            unoptimized={true}
-          />
-          <h1 className="text-4xl font-bold mb-6">
-            Welcome to Pintree
-          </h1>
-          <p className="text-xl opacity-90 leading-relaxed">
-            A powerful bookmark management platform to help you better organize and share web resources.
-          </p>
+          <div className="flex items-center space-x-2 mb-6">
+            <div className="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16" />
+            <img
+              src="/logo.svg"
+              width={120}
+              height={60}
+              alt="CrateNav Logo"
+              className="h-10 w-auto"
+            />
+          </div>
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold">Welcome to CrateNav</h1>
+            <p className="text-gray-500 mt-2">
+              Sign in to continue to your account
+            </p>
+          </div>
         </div>
       </div>
 
@@ -113,14 +115,16 @@ export default function LoginPage() {
         <div className="max-w-md w-full space-y-8">
           {/* 移动端 Logo */}
           <div className="md:hidden text-center mb-8">
-            <Image 
-              src="/logo.svg"
-              alt="Pintree Logo"
-              width={60}
-              height={60}
-              className="mx-auto"
-              unoptimized={true}
-            />
+            <div className="flex items-center justify-center space-x-2 mb-6">
+              <div className="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16" />
+              <img
+                src="/logo.svg"
+                width={120}
+                height={60}
+                alt="CrateNav Logo"
+                className="h-10 w-auto"
+              />
+            </div>
           </div>
 
           <div className="text-center">

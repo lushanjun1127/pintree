@@ -1,6 +1,7 @@
-# Pintree
+# CrateNav
 
-Pintree is a smart bookmark management and organization platform that helps users collect, organize and share their favorite websites in a beautiful way.
+CrateNav is a smart bookmark management and organization platform that helps users collect, organize and share their favorite websites in a beautiful way.
+Based on the original Pintree project by Pintree-io.
 
 ## Features
 
@@ -10,6 +11,13 @@ Pintree is a smart bookmark management and organization platform that helps user
 - Advanced search capabilities
 - Responsive design
 - Easy import/export functionality
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+The original Pintree project was created by Pintree-io and is used under the MIT license.
+CrateNav is a fork with modifications by lushanjun1127.
 
 ## Getting Started
 
@@ -23,8 +31,8 @@ Pintree is a smart bookmark management and organization platform that helps user
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/lushanjun1127/pintree.git
-cd pintree
+git clone https://github.com/lushanjun1127/cratenav.git
+cd cratenav
 ```
 
 2. Install dependencies:
@@ -40,7 +48,7 @@ cp .env.example .env.local
 4. Update the `.env.local` file with your configuration:
 ```env
 # Database
-DATABASE_URL="postgresql://username:password@localhost:5432/pintree"
+DATABASE_URL="postgresql://username:password@localhost:5432/cratenav"
 
 # Authentication
 NEXTAUTH_URL="http://localhost:3000"
@@ -99,56 +107,3 @@ Make sure to set these environment variables in your production environment:
 - `pnpm lint` - Run linter
 - `pnpm db:push` - Push schema changes to database
 - `pnpm db:migrate` - Create and apply migration
-- `pnpm db:deploy` - Deploy migrations to production
-
-## Contributing
-
-We welcome contributions! Please see our contributing guidelines for more information.
-
-## ❤️ Contributing
-
-We welcome Issues and Pull Requests to help improve this documentation.
-
-## 🛠️ Tech Stack
-
-- **Frontend&Backend**: Next.js
-- **Deployment**: Vercel
-- **Database**: PostgreSQL
-
-## 👥 Community
-
-- Twitter: [@pintree_io](https://twitter.com/pintree_io)
-- GitHub: [github.com/Pintree-io](https://github.com/Pintree-io)
-- Discord: [Join Community](https://discord.gg/gJTrkHFg)
-- Email: feedback@pintree.io
-
-## 🔗 Links
-
-- [Pintree Official Website](https://pintree.io)
-- [Demo](https://demo.pintree.io)
-- [Documentation](https://docs.pintree.io)
-- [Changelog](https://docs.pintree.io/en/changelog)
-
-## ✨ Features
-
-### Basic Version (Free)
-- 📑 Unlimited Import/Export Bookmarks
-- 📁 Bookmark Management
-- 🎨 Basic Theme Customization
-- 🔍 Bookmark Search
-
-### [Professional Version (PRO)](https://www.pintree.io/#pricing)
-- 📑 All Basic Version Features
-- 📚 Multiple Collection Switching
-- 🔒 Private Collections
-- 📢 Multiple Ad Space Configuration
-- 🤖 AI Search
-- 🎯 Professional SEO Optimization
-- 📊 Detailed Access Statistics
-- 💻 Priority Technical Support
-- 🕒 Lifetime Access
-- 🔄 Free Lifetime Updates
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

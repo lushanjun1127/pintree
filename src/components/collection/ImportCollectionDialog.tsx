@@ -86,6 +86,26 @@ export function ImportCollectionDialog({
       const fileContent = await formData.file.text();
       const jsonData = JSON.parse(fileContent);
 
+      // 检测数据来源
+      if (jsonData.metadata?.exportedFrom === "CrateNav") {
+        setDetectedPlatform("CrateNav");
+        toast.success("检测到CrateNav数据格式");
+      } else if (jsonData.metadata?.exportedFrom === "Pintree") {
+        setDetectedPlatform("Pintree");
+        toast.success("检测到Pintree数据格式（兼容模式）");
+      } else if (jsonData.metadata?.source === "browser-extension") {
+        setDetectedPlatform("extension");
+        toast.success("检测到浏览器扩展数据格式");
+      } else {
+        setDetectedPlatform("unknown");
+        toast.info("未知数据格式，将尝试通用导入");
+      }
+
+      // 显示导入源信息
+      if (jsonData.metadata?.exportedFrom === "CrateNav" || jsonData.metadata?.exportedFrom === "Pintree") {
+        toast.info(`正在导入 ${jsonData.metadata.exportedFrom} 数据...`);
+      }
+
       // Batch import logic
       let batchSize = 100; // Process 100 bookmarks per batch
 

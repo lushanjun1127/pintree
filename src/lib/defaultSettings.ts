@@ -10,7 +10,7 @@ export const defaultSettings: SettingItem[] = [
   // 基础设置
   {
     key: "websiteName",
-    value: "Pintree",
+    value: "CrateNav",
     type: "string",
     group: "basic",
     description: "网站名称"
@@ -31,7 +31,7 @@ export const defaultSettings: SettingItem[] = [
   },
   {
     key: "copyrightText",
-    value: "© 2024 Pintree. All rights reserved.",
+    value: "© 2024 CrateNav. Based on original Pintree project by Pintree-io under MIT license.",
     type: "string",
     group: "basic",
     description: "版权信息"
@@ -48,7 +48,7 @@ export const defaultSettings: SettingItem[] = [
   // 社交媒体链接
   {
     key: "githubUrl",
-    value: "https://github.com/Pintree-io/pintree",
+    value: "https://github.com/CrateNav-io/cratenav",
     type: "string",
     group: "basic",
     description: "GitHub链接"
@@ -62,7 +62,7 @@ export const defaultSettings: SettingItem[] = [
   },
   {
     key: "twitterUrl",
-    value: "https://x.com/pintree_io",
+    value: "https://x.com/cratenav_io",
     type: "string",
     group: "basic",
     description: "Twitter链接"
@@ -76,35 +76,35 @@ export const defaultSettings: SettingItem[] = [
   },
   {
     key: "linkedinUrl",
-    value: "https://linkedin.com/company/pintree",
+    value: "https://linkedin.com/company/cratenav",
     type: "string",
     group: "basic",
     description: "LinkedIn链接"
   },
   {
     key: "weixinUrl",
-    value: "https://weixin.qq.com/pintree",
+    value: "https://weixin.qq.com/cratenav",
     type: "string",
     group: "basic",
     description: "微信公众号链接"
   },
   {
     key: "weiboUrl",
-    value: "https://weibo.com/pintree",
+    value: "https://weibo.com/cratenav",
     type: "string",
     group: "basic",
     description: "微博主页链接"
   },
   {
     key: "bilibiliUrl",
-    value: "https://dribbble.com/Pintree",
+    value: "https://dribbble.com/CrateNav",
     type: "string",
     group: "basic",
     description: "B站主页链接"
   },
   {
     key: "zhihuUrl",
-    value: "https://zhihu.com/people/pintree",
+    value: "https://zhihu.com/people/cratenav",
     type: "string",
     group: "basic",
     description: "知乎主页链接"
@@ -113,14 +113,14 @@ export const defaultSettings: SettingItem[] = [
   // SEO设置
   {
     key: "siteTitle",
-    value: "Pintree - Smart Bookmark Management & Organization Platform",
+    value: "CrateNav - Smart Bookmark Management & Organization Platform",
     type: "string",
     group: "seo",
     description: "网站标题"
   },
   {
     key: "description",
-    value: "Organize, manage and share your bookmarks efficiently with Pintree. Features AI-powered organization, custom collections, and seamless bookmark sharing for enhanced productivity.",
+    value: "Organize, manage and share your bookmarks efficiently with CrateNav. Features AI-powered organization, custom collections, and seamless bookmark sharing for enhanced productivity. Based on original Pintree project by Pintree-io.",
     type: "string",
     group: "seo",
     description: "网站描述"
@@ -134,14 +134,14 @@ export const defaultSettings: SettingItem[] = [
   },
   {
     key: "siteUrl",
-    value: "https://pintree.io",
+    value: "https://cratenav.io",
     type: "string",
     group: "seo",
     description: "网站URL"
   },
   {
     key: "ogImage",
-    value: "https://pintree.io/og-image.png",
+    value: "https://cratenav.io/og-image.png",
     type: "string",
     group: "seo",
     description: "社交分享图片"
@@ -155,7 +155,7 @@ export const defaultSettings: SettingItem[] = [
   },
   {
     key: "author",
-    value: "Pintree Team",
+    value: "CrateNav Team",
     type: "string",
     group: "seo",
     description: "作者信息"
@@ -236,14 +236,14 @@ export const defaultSettings: SettingItem[] = [
   },
   {
     key: "ctaButtonText",
-    value: "Claim your Pintree",
+    value: "Claim your CrateNav",
     type: "string",
     group: "feature",
     description: "CTA按钮文字"
   },
   {
     key: "ctaButtonLink",
-    value: "https://pintree.io",
+    value: "https://cratenav.io",
     type: "string",
     group: "feature",
     description: "CTA按钮链接"
@@ -271,7 +271,7 @@ export const defaultSettings: SettingItem[] = [
   },
   {
     key: "heroBannerDescription",
-    value: "Create, manage and share personalized bookmark collections with Pintree",
+    value: "Create, manage and share personalized bookmark collections with CrateNav",
     type: "string",
     group: "feature",
     description: "Hero Banner描述"
@@ -285,14 +285,14 @@ export const defaultSettings: SettingItem[] = [
   },
   {
     key: "heroBannerButtonText",
-    value: "Pintree.io",
+    value: "CrateNav.io",
     type: "string",
     group: "feature",
     description: "Hero Banner按钮文字"
   },
   {
     key: "heroBannerButtonLink",
-    value: "https://pintree.io",
+    value: "https://cratenav.io",
     type: "string",
     group: "feature",
     description: "Hero Banner按钮链接"
@@ -355,7 +355,7 @@ export const defaultSettings: SettingItem[] = [
   },
   {
     key: "carouselImageHyperlinks",
-    value: "https://pintree.io|https://pintree.io|https://pintree.io|https://pintree.io|https://pintree.io|https://pintree.io",
+    value: "https://cratenav.io|https://cratenav.io|https://cratenav.io|https://cratenav.io|https://cratenav.io|https://cratenav.io",
     type: "json",
     group: "feature",
     description: "轮播图片跳转链接"
@@ -369,7 +369,7 @@ export const defaultSettings: SettingItem[] = [
   },
   {
     key: "topBannerTitle",
-    value: "Pintree 1.0 Launched",
+    value: "CrateNav 1.0 Launched",
     type: "string",
     group: "feature",
     description: "Banner标题"
@@ -390,7 +390,7 @@ export const defaultSettings: SettingItem[] = [
   },
   {
     key: "topBannerButtonLink",
-    value: "https://github.com/Pintree-io/pintree",
+    value: "https://github.com/CrateNav-io/cratenav",
     type: "string",
     group: "feature",
     description: "Banner按钮链接"
@@ -404,7 +404,7 @@ export const defaultSettings: SettingItem[] = [
   },
   {
     key: "sidebarAdsDescription",
-    value: "Pintree helps you collect, organize and share your favorite websites in a beautiful way",
+    value: "CrateNav helps you collect, organize and share your favorite websites in a beautiful way",
     type: "string",
     group: "feature",
     description: "侧边栏广告描述"
@@ -425,7 +425,7 @@ export const defaultSettings: SettingItem[] = [
   },
   {
     key: "sidebarAdsButtonUrl",
-    value: "https://github.com/Pintree-io/pintree",
+    value: "https://github.com/CrateNav-io/cratenav",
     type: "string",
     group: "feature",
     description: "侧边栏广告按钮链接"

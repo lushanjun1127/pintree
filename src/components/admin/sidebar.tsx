@@ -31,7 +31,10 @@ export function AdminSidebar() {
   return (
     <aside className="w-64 border-r bg-white h-full">
       <div className="p-4 border-b">
-        <h2 className="text-xl font-bold">Pintree管理</h2>
+        <div className="flex items-center space-x-2">
+          <div className="bg-gray-200 border-2 border-dashed rounded-xl w-8 h-8" />
+          <h2 className="text-xl font-bold">CrateNav管理</h2>
+        </div>
       </div>
       <nav className="p-2">
         <ul className="space-y-1">

@@ -209,9 +209,9 @@ export async function GET(
     // Build export data
     const exportData: ExportedData = {
       metadata: {
-        version: "1.0.0",
-        exportedFrom:'PintreePro',
+        exportedFrom: 'CrateNav',
         exportedAt: new Date().toISOString(),
+        version: '1.0',
       },
       collection: {
         name: collection.name,

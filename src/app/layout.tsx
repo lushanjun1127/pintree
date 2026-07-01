@@ -131,9 +131,9 @@ export const generateMetadata = async (
   } catch (error) {
     console.error("获取设置失败:", error);
     return {
-      title: "Pintree - Smart Bookmark Management & Organization Platform",
+      title: "CrateNav - Smart Bookmark Management & Organization Platform",
       description:
-        "Organize, manage and share your bookmarks efficiently with Pintree. Features AI-powered organization, custom collections, and seamless bookmark sharing for enhanced productivity.",
+        "Organize, manage and share your bookmarks efficiently with CrateNav. Features AI-powered organization, custom collections, and seamless bookmark sharing for enhanced productivity.",
       keywords:
         "bookmark manager, bookmark organizer, bookmark collections, bookmark sharing, productivity tools, website organization, link management, bookmark tags, AI bookmarking, digital organization",
       icons: {

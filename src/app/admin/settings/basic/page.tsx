@@ -39,7 +39,7 @@ const defaultSettings = {
   siteUrl: "",
   description: "",
   keywords: "",
-  copyrightText: "© 2024 Pintree. All rights reserved.",
+  copyrightText: "© 2024 CrateNav. Based on original Pintree project by Pintree-io under MIT license.",
   contactEmail: "",
   githubUrl: "",
   twitterUrl: "",
